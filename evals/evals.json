@@ -1,0 +1,179 @@
+{
+  "skill_name": "noslop",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "In src/users.ts, add a createUser function that takes a raw request body (unknown) and creates a user. Email must be valid, name is required, and duplicate emails should fail. Use the existing helpers in the file. Don't add a framework.",
+      "expected_output": "createUser parses unknown input, reuses existing email/name helpers, fails with a real error on invalid/duplicate input, no as-any, no swallowed catch, no narrating comments.",
+      "files": ["evals/files/add-endpoint/src/users.ts"],
+      "expectations": [
+        "createUser exists and accepts unknown (or a raw body), not a pre-typed User",
+        "Reuses isEmail — does not introduce a second email regex",
+        "Reuses requireName for the name field",
+        "Reuses insertUser (the unique-insert helper) — does not findByEmail then push at the caller",
+        "No as any, as unknown as T, as User, as string, or @ts-ignore on the body",
+        "Invalid or duplicate input fails with an error — does not return a placeholder user",
+        "Does not take id from the body as the new user's id",
+        "No empty catch and no catch that only logs then continues",
+        "No comments that restate the next line (Import / Return / Helper)",
+        "No extra UserService, factory, or new util file",
+        "Does not add Express, Next, or a new app.ts"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "In reports.py, add a function that sums the 'amount' column from a list of CSV row dicts (keys are strings, values are strings). Invalid rows should not silently become zero. Reuse what already exists in this folder.",
+      "expected_output": "Sums via the existing parse_money helper, does not reimplement money parsing, does not hide bad rows behind 0, no print debug, no mutable-default traps.",
+      "files": ["evals/files/reuse-helper/billing.py", "evals/files/reuse-helper/reports.py"],
+      "expectations": [
+        "reports.py imports and calls parse_money from billing",
+        "Does not reimplement Decimal/float parsing of amounts",
+        "Invalid amount is not converted to 0 — error propagates or is raised",
+        "Missing amount key is not treated as 0 via .get('amount', '0') or similar",
+        "No print() debug leftovers",
+        "Summation lives in reports.py, not a new util module"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "load_config in config.py crashes when the file is missing or the JSON is invalid. Make it reliable: the caller needs to know that loading failed. Do not invent a config.",
+      "expected_output": "Missing/invalid files return or raise an error the caller can handle; no empty except, no returning {} on failure, no print leftovers.",
+      "files": ["evals/files/boundary-errors/config.py"],
+      "expectations": [
+        "Missing file is a failure the caller can observe (raise or Result), not a crash traceback from an unhandled Path.read_text alone without context — and not a silent default",
+        "Invalid JSON is a failure the caller can observe",
+        "Missing 'app' key is a failure — does not invent a config dict",
+        "Does not return {} or a placeholder config on any failure path",
+        "No bare except: and no except Exception that returns a default",
+        "No print() leftovers"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "In invoices.ts, add getInvoice(id) for the current user. Use existing helpers. Don't add a framework.",
+      "expected_output": "getInvoice scopes to getSession().userId; other owners fail; userId is not taken from the client/body.",
+      "files": ["evals/files/scoped-read/invoices.ts"],
+      "expectations": [
+        "getInvoice exists and takes an invoice id",
+        "Uses getSession (or equivalent) so the owner is the session user",
+        "Does not return findById(id) unscoped — scope in the lookup (ownerId from session)",
+        "Another user's invoice id fails (throw or undefined), not a successful Invoice",
+        "Does not take userId/ownerId from the caller as a client field",
+        "No extra service class or new util file"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "In slots.ts, add reserve(slotId) that marks a free slot reserved. Two requests may run at once. Reuse what already exists in this folder. Don't add a framework.",
+      "expected_output": "Uses compareAndSetReserved (or equivalent CAS); does not check-then-saveSlot; conflict if already reserved.",
+      "files": ["evals/files/atomic-reserve/store.ts", "evals/files/atomic-reserve/slots.ts"],
+      "expectations": [
+        "slots.ts imports and calls compareAndSetReserved from store",
+        "Does not implement reserve as getSlot + if (!reserved) saveSlot",
+        "Already-reserved slot is a failure the caller can observe",
+        "Missing slot id is a failure, not a silent create",
+        "No setTimeout/sleep",
+        "No extra util module",
+        "Does not add Prisma, a database client, or a new package"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "load_prices in prices.py must return the JSON list from PRICES_URL. The caller needs to know if loading failed. Do not invent a list. Do not take a URL from the caller. Don't add a library.",
+      "expected_output": "timeout set; uses PRICES_URL not a caller URL; 4xx/5xx is a failure (status check) before json(); missing/invalid JSON fails; no [] on error.",
+      "files": ["evals/files/outbound-get/prices.py"],
+      "expectations": [
+        "Uses PRICES_URL — does not accept a caller-supplied URL",
+        "Outbound call has a timeout (urllib/requests/httpx timeout= or equivalent — do not add a package)",
+        "Non-2xx is a failure the caller can observe — not res.json() of a 500",
+        "Invalid JSON is a failure",
+        "Does not return [] or a placeholder list on any failure path",
+        "No bare except: and no except Exception that returns a default",
+        "No print() leftovers"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "In invoices.ts, add createInvoice that takes a raw request body (unknown). Total is required. Use existing helpers. Don't add a framework.",
+      "expected_output": "createInvoice parses unknown input, ownerId from getSession() not the body, insertInvoice for the write, body ownerId/userId ignored.",
+      "files": ["evals/files/scoped-read/invoices.ts"],
+      "expectations": [
+        "createInvoice exists and accepts unknown (or a raw body)",
+        "ownerId comes from getSession().userId",
+        "Does not take ownerId/userId from the body as the owner",
+        "Reuses insertInvoice for the write",
+        "Missing or invalid total fails with an error — does not invent a total",
+        "No extra service class or new util file"
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "In profile.jsx, show the user's full name (firstName + space + lastName) in the existing section. Don't add a library. Don't fetch.",
+      "expected_output": "fullName (or equivalent) derived during render; no useEffect/useState copy of the name; no nested function component; lastName is used.",
+      "files": ["evals/files/react-derived/profile.jsx"],
+      "expectations": [
+        "Renders firstName and lastName together (full name visible in the tree)",
+        "Does not use useEffect to copy first/last into state",
+        "Does not add useState whose only job is storing the concatenated name",
+        "Does not define a nested function component inside Profile",
+        "No extra util file or wrapper component file"
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "In settings.js, implement mergeSettings(raw) so a JSON string of user settings overlays defaults. Only theme and locale are allowed. Invalid JSON should fail. Don't add a library.",
+      "expected_output": "JSON.parse with failure on invalid JSON; allowlisted theme/locale; no Object.assign/merge of the parsed object (prototype pollution).",
+      "files": ["evals/files/js-merge/settings.js"],
+      "expectations": [
+        "Invalid JSON is a failure the caller can observe (throw), not {}",
+        "Only theme and locale from the payload are applied — other keys ignored",
+        "Does not Object.assign(defaults, parsed) or lodash/recursive-merge the parsed object",
+        "Does not copy __proto__ / constructor / prototype from the payload onto defaults",
+        "Unknown or missing theme/locale keep the default (or fail if theme is an invalid value — either is ok)",
+        "No extra util file"
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "loadPrices in prices.js must return the JSON list from PRICES_URL. The caller needs to know if loading failed. Do not invent a list. Do not take a URL from the caller. Don't add a library.",
+      "expected_output": "AbortSignal or timeout; uses PRICES_URL not a caller URL; non-2xx is a failure before json(); invalid JSON fails; no [] on error.",
+      "files": ["evals/files/outbound-get-js/prices.js"],
+      "expectations": [
+        "Uses PRICES_URL — does not accept a caller-supplied URL",
+        "Outbound fetch has AbortSignal or an equivalent timeout",
+        "Non-2xx is a failure the caller can observe — not res.json() of a 500",
+        "Invalid JSON is a failure",
+        "Does not return [] or a placeholder list on any failure path",
+        "No empty catch that returns a default",
+        "No console.log leftovers"
+      ]
+    },
+    {
+      "id": 11,
+      "prompt": "In users.sql, add a statement that deactivates the user whose email is ada@example.com. Match the file. Don't add a framework.",
+      "expected_output": "UPDATE with WHERE on email (or id looked up by email); does not UPDATE/DELETE the whole table; no DROP.",
+      "files": ["evals/files/sql-write/users.sql"],
+      "expectations": [
+        "Statement sets active to false (or equivalent deactivate) for ada@example.com",
+        "Has a WHERE that keys the row (email or id) — not a bare UPDATE/DELETE",
+        "Does not UPDATE or DELETE every row",
+        "Does not DROP TABLE / TRUNCATE",
+        "Does not invent columns that are not id/email/active/last_seen"
+      ]
+    },
+    {
+      "id": 12,
+      "prompt": "In app.py, add DELETE /items/{id} that deletes the current user's item. Reuse existing helpers. Don't add a framework.",
+      "expected_output": "Route uses Depends(get_current_user) and Depends(get_db) like get_item; store.delete_for with session user id; missing/other-owner fails; no module-global current_user.",
+      "files": ["evals/files/fastapi-depends/app.py"],
+      "expectations": [
+        "DELETE /items/{id} exists",
+        "Uses Depends(get_current_user) — does not read a module-global current user",
+        "Uses Depends(get_db) or the existing store dependency — does not open a new global Session",
+        "Reuses delete_for (or equivalent scoped delete) so another owner's item fails",
+        "Missing or other-owner id is a failure the caller can observe (HTTPException or raise), not a 200 with {error}",
+        "No extra router/service file"
+      ]
+    }
+  ]
+}

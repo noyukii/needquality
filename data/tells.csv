@@ -1,0 +1,73 @@
+id,domain,tell,fix
+swallowed-catch,trust,empty catch / except pass / log then continue,return a typed failure or add context and rethrow
+invented-success,trust,items ?? [] / 5xx as cache / Promise.allSettled keep fulfilled,fail the caller; 2xx before parse
+retry-no-budget,trust,infinite retry or new UUID per attempt,cap backoff cancel; persist idempotency
+as-t,ts,payload as User / as unknown as T,parse at the handler
+zod-no-parse,ts,z.infer only no .parse at the handler,schema.parse / safeParse on the wire
+prisma-client-per-request,ts,new PrismaClient inside a handler,one module-scoped client
+n-plus-1,trust,N+1 map(findUnique) / for row in qs: row.user,JOIN include IN prefetch
+check-then-act,trust,find then update reserved / unique email,conditional UPDATE unique constraint CAS
+fetch-no-ok,js,(await fetch).json of a 500,res.ok / raise_for_status then json
+proto-merge,js,Object.assign / lodash merge of JSON.parse,__proto__ allowlist keys; do not recursive-merge body
+for-each-async,js,arr.forEach(async) / floating promise,await Promise.all or for-of; catch it
+derive-in-effect,react,useEffect setX(compute(props)),derive in render; key= to reset
+nested-component,react,function component inside render,module-level; it remounts every time
+use-server-file,react,'use server' on a page to make it a Server Component,file-top use server exports public POSTs; parse+authz inside each
+count-and,react,{count && <Row />} renders 0,ternary
+chained-get,py,"payload.get(user, {}).get(name, '')",required key lookup; parse once
+mutable-default,py,def f(xs=[]),None then assign inside
+fastapi-skip-depends,py,global db / skip Depends on a new route,Depends(get_db) / get_current_user like the sibling
+fastapi-pydantic-v1,py,@validator class Config in a v2 file,match the file: field_validator ConfigDict
+go-ignore-err,go,data _ := json.Marshal,named err wrap return
+go-background,go,go func from handler with context.Background,r.Context() deadline; select Done; bound or wait
+go-forgotten-sender,go,send on channel with no receiver leftover,buffer or cancel; close when done
+rust-unwrap,rs,.unwrap / expect in non-test prod,?; expect only for programmer invariant
+sql-no-where,sql,UPDATE DELETE with no WHERE,filter on a key; check rowcount
+sql-select-star,sql,SELECT * into an API payload,name the columns
+sql-cartesian,sql,"FROM a, b with no ON",JOIN … ON; LIMIT
+sql-no-index,sql,new table then WHERE/JOIN with no index,index the column you filter or say you didn't
+sql-guess-schema,sql,invented table/column names,grep schema.prisma models.py this file
+idor,trust,findUnique by id with no owner,scope to session user/org
+owner-from-body,trust,userId orgId role from JSON,session only
+csrf-json,trust,skip CSRF because the body is JSON,skip only if cookies cannot authenticate
+jwt-decode,trust,jwt.decode / jose.decodeJwt / atob payload,verify with alg allowlist
+ssrf,trust,fetch(req.body.url) / next/image user src,allowlist hosts; redirects bypass IP check
+path-join,trust,join(dir userFilename),name you generated
+update-no-where,sql,AI SQL write without a filter,treat as a bug until a key is in WHERE
+test-tautology,test,expect(fn()).toBe(fn()) / expected from the impl,golden value at a public seam
+test-internal,test,assert on a private field not the return,public behavior
+test-mock-called,test,expect(mock).toHaveBeenCalled as the only assert,assert the outcome unless the mock is the contract
+test-unreachable,test,expect inside a callback that never fires,the assertion path must be able to go red
+test-snapshot,test,bless a giant HTML/JSON snapshot to get green,narrow assertion; review the delta
+drive-by,agent,reformat rename unrelated files,min patch; cleanup is another change
+tidy-with-logic,agent,rename or move in the same diff as a behavior change,two diffs
+duplicate-helper,agent,new formatter next to an existing one,import the named helper; copy twice extract third
+shallow-wrapper,agent,wrapper that only forwards / callers still read the body,inline or give it a real interface
+starter-layout,agent,invented internal/pkg/cmd/utils/controllers-services tree,files next to the caller until a second consumer
+yagni-carry,agent,unused field/config/flag for later,delete; add when a caller exists
+entangled-split,agent,two functions that must be read together to understand one,combine them
+invented-kit,ui,useState+absolute Popover next to the kit,import the kit primitive
+inter-indigo,ui,Inter indigo three cards on a new surface,match the repo or uniqueness.md
+new-slop-sheet,ui,muted paper canvas hairline rules earth rectangle button fact rows boxed form,skip as first idea on persuade; keep for spec/datasheet
+doc-column,ui,centered stack all left matte field vertical rail identity facts form,skip as first idea on persuade; correct for read/docs
+all-matte,ui,low chroma everywhere no sheen quiet mid-weight grotesk paper sage stone charcoal,skip as first idea on persuade; keep for uncoated/read
+cream-serif,ui,cream beige terracotta italic serif Fraunces Playfair hero,unprompted default; type from fetched pages if the job is not editorial
+editorial-kickers,ui,tracked mono kickers 01/02/03 decorative grid wallpaper,delete kickers; grid only if the job is a map or canvas
+hard-sticker-card,ui,cream card hard offset shadow on sage,elevation from the fetched world or none
+color-fingerprint,ui,"inventing #3B82F6 #2563EB #F9FAFB #09090B / blue-500 zinc-950",match the file; else a hue from the subject
+token-drift,ui,raw bg-blue-500 beside --primary / kit primary,grep tokens; one source
+status-default,ui,custom accent still ring-blue-500 hover-blue-700 green-500,same-hue hover/focus/status
+sql-expand-contract,sql,rename/type-change/NOT NULL in one migration while old code runs,add nullable then backfill then switch then drop later
+sql-ident,sql,ORDER BY user sort as a SQL identifier,allowlist column names; bound values do not fix this
+v-html,js,Vue v-html / Svelte {@html} of user text,text nodes or the project's sanitizer
+csrf-get,trust,state-changing GET / delete link,POST plus CSRF; SameSite Lax does not save GET
+ssrf-metadata,trust,fetch 169.254.169.254 / metadata.google.internal,not an allowlisted host
+rust-unwrap-default,rs,.unwrap_or_default on a failed fetch,fail the caller; invented success
+go-body-close,go,http.Get without defer Body.Close / rows.Err,defer close; check rows.Err
+prisma-db-push,sql,prisma db push on a shared DB,migrate; db push is not a migration
+z-index,ui,z-[9999] / z-index 9999 / min-h-screen / overflow-x-hidden / !important,svh/dvh; named z; clip; specificity
+outline-none,ui,outline-none with no focus-visible; div onClick; placeholder-only label,<label> <button>/<a> :focus-visible
+app-kpis,ui,four KPI cards + fake Recharts + Welcome back hero in an app,one real number or skip; title of the task
+plex-mono,ui,"IBM Plex Mono / JetBrains Mono / Geist Mono / Fira Code as UI",mono for code; display+body from the subject
+dot-arrow,ui,"inline · or trailing → as chrome","match the file; comma, list, kit icon, or the verb"
+mono-table,ui,dark all-caps mono table hairline acid-green selected row,kit Table; headers match the file; selection from existing accent
