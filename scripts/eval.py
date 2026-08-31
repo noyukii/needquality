@@ -26,6 +26,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 EVALS_PATH = ROOT / "evals" / "evals.json"
 RUNS_DIR = ROOT / "evals" / ".runs"
+TRACE_LINE_RE = re.compile(r"(?m)^\s*`⚙︎ Used: ([^`\n]+)`\s*$")
+TRACE_LABEL_RE = re.compile(r"^(?:job|flow|load):[a-z0-9-]+$")
 
 JUDGE_PROMPT = """You are grading one attempt at a coding task. Judge only what the
 final file contents show. Do not run tools. Do not be generous: an expectation
@@ -71,6 +73,25 @@ def validate_data(data: dict) -> list[str]:
             errors.append(f"eval {cid}: expectations must be a non-empty list")
         elif not all(isinstance(item, str) and item.strip() for item in expectations):
             errors.append(f"eval {cid}: expectations must be non-empty strings")
+        if "trace" in case:
+            trace = case["trace"]
+            if not isinstance(trace, dict):
+                errors.append(f"eval {cid}: trace must be an object")
+            else:
+                mode = trace.get("mode", "exact")
+                if mode not in {"exact", "absent"}:
+                    errors.append(f"eval {cid}: trace mode must be exact or absent")
+                elif mode == "absent":
+                    if set(trace) != {"mode"}:
+                        errors.append(f"eval {cid}: absent trace cannot include parts")
+                else:
+                    parts = trace.get("parts")
+                    if not isinstance(parts, list) or not parts:
+                        errors.append(f"eval {cid}: exact trace needs non-empty parts")
+                    elif not all(isinstance(part, str) and TRACE_LABEL_RE.fullmatch(part) for part in parts):
+                        errors.append(f"eval {cid}: trace parts must use canonical labels")
+                    elif len(parts) != len(set(parts)):
+                        errors.append(f"eval {cid}: trace parts must be unique")
         files = case.get("files")
         if not isinstance(files, list) or not files:
             errors.append(f"eval {cid}: files must be a non-empty list")
@@ -164,6 +185,26 @@ def judge_results(text: str, expected: int) -> list[dict]:
     return results
 
 
+def trace_result(reply: str, trace: dict) -> tuple[bool, str]:
+    lines = TRACE_LINE_RE.findall(reply)
+    if trace.get("mode", "exact") == "absent":
+        return (not lines, "no trace line" if not lines else "trace line present")
+
+    if len(lines) != 1:
+        return False, f"expected one trace line, found {len(lines)}"
+    actual = [part.strip() for part in lines[0].split("·")]
+    expected = trace["parts"]
+    if actual != expected:
+        return False, f"trace parts {actual!r}, expected {expected!r}"
+    if not all(TRACE_LABEL_RE.fullmatch(part) for part in actual):
+        return False, "trace contains non-canonical label"
+    return True, "trace matches routed parts"
+
+
+def expected_total(case: dict) -> int:
+    return len(case["expectations"]) + (1 if "trace" in case else 0)
+
+
 def run_case(case: dict, stamp_dir: Path, model: str | None, timeout: int) -> dict:
     cid = case["id"]
     work = stamp_dir / f"case-{cid}"
@@ -174,9 +215,9 @@ def run_case(case: dict, stamp_dir: Path, model: str | None, timeout: int) -> di
 
     started = time.monotonic()
     try:
-        agent(case["prompt"], work, model, timeout, ask=False)
+        task_reply = agent(case["prompt"], work, model, timeout, ask=False)
     except (RuntimeError, subprocess.TimeoutExpired, OSError) as err:
-        return {"id": cid, "error": f"run: {err}", "passed": 0, "total": len(case["expectations"])}
+        return {"id": cid, "error": f"run: {err}", "passed": 0, "total": expected_total(case)}
 
     missing = [rel for _, rel in case_files(case) if not (work / rel).is_file()]
     if missing:
@@ -184,7 +225,7 @@ def run_case(case: dict, stamp_dir: Path, model: str | None, timeout: int) -> di
             "id": cid,
             "error": f"run removed fixture(s): {', '.join(missing)}",
             "passed": 0,
-            "total": len(case["expectations"]),
+            "total": expected_total(case),
         }
 
     blob = "\n\n".join(
@@ -214,16 +255,16 @@ def run_case(case: dict, stamp_dir: Path, model: str | None, timeout: int) -> di
     blob += "\n\n--- skill-side-effects ---\n" + "\n".join(extras)
     listed = "\n".join(f"{i}. {e}" for i, e in enumerate(case["expectations"], 1))
     try:
-        reply = agent(
+        judge_reply = agent(
             JUDGE_PROMPT.format(prompt=case["prompt"], files=blob, expectations=listed),
             work,
             model,
             timeout,
             ask=True,
         )
-        results = judge_results(reply, len(case["expectations"]))
+        results = judge_results(judge_reply, len(case["expectations"]))
     except (RuntimeError, ValueError, subprocess.TimeoutExpired, OSError) as err:
-        return {"id": cid, "error": f"judge: {err}", "passed": 0, "total": len(case["expectations"])}
+        return {"id": cid, "error": f"judge: {err}", "passed": 0, "total": expected_total(case)}
 
     for i, exp in enumerate(case["expectations"], 1):
         rel = next((name for name in present if name in exp), None)
@@ -237,11 +278,15 @@ def run_case(case: dict, stamp_dir: Path, model: str | None, timeout: int) -> di
         else:
             results.append({"n": i, "pass": False, "why": f"{rel} present"})
 
+    if "trace" in case:
+        passed, why = trace_result(task_reply, case["trace"])
+        results.append({"n": len(results) + 1, "pass": passed, "why": why})
+
     failed = [r for r in results if not r.get("pass")]
     return {
         "id": cid,
         "passed": len(results) - len(failed),
-        "total": len(case["expectations"]),
+        "total": expected_total(case),
         "failed": [{"n": r.get("n"), "why": r.get("why", "")} for r in failed],
         "seconds": round(time.monotonic() - started, 1),
     }
@@ -284,7 +329,7 @@ def run(data: dict, only: int | None, model: str | None, jobs: int, timeout: int
                     "id": case["id"],
                     "error": f"harness: {err}",
                     "passed": 0,
-                    "total": len(case["expectations"]),
+                    "total": expected_total(case),
                 }
             results.append(row)
             note = row.get("error") or f"{row['passed']}/{row['total']}"

@@ -11,6 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 LINK_RE = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
+TRACE_LABEL_RE = re.compile(r"^(?:job|flow|load):[a-z0-9-]+$")
 RESEARCH_PATH = ROOT / "references" / "flows" / "research" / "SKILL.md"
 
 
@@ -118,6 +119,25 @@ def validate_evals(errors: list[str]) -> int:
         ids.append(cid)
         if not case.get("prompt") or not case.get("expectations"):
             errors.append(f"eval {cid}: prompt and expectations required")
+        if "trace" in case:
+            trace = case["trace"]
+            if not isinstance(trace, dict):
+                errors.append(f"eval {cid}: trace must be an object")
+            else:
+                mode = trace.get("mode", "exact")
+                if mode not in {"exact", "absent"}:
+                    errors.append(f"eval {cid}: trace mode must be exact or absent")
+                elif mode == "absent":
+                    if set(trace) != {"mode"}:
+                        errors.append(f"eval {cid}: absent trace cannot include parts")
+                else:
+                    parts = trace.get("parts")
+                    if not isinstance(parts, list) or not parts:
+                        errors.append(f"eval {cid}: exact trace needs non-empty parts")
+                    elif not all(isinstance(part, str) and TRACE_LABEL_RE.fullmatch(part) for part in parts):
+                        errors.append(f"eval {cid}: trace parts must use canonical labels")
+                    elif len(parts) != len(set(parts)):
+                        errors.append(f"eval {cid}: trace parts must be unique")
         for rel in case.get("files", []):
             path = Path(rel) if isinstance(rel, str) else Path()
             if (

@@ -52,6 +52,21 @@ Complex (3+ files, new I/O/auth/UI seam, or they asked): write
 over-building, tool narration, extra markdown, flattery,
 one-shotting the app, or a new helper next to an existing one.
 
+## Trace
+
+When active, emit one compact Markdown code-span on the first line of
+the final response, after selected references have been read:
+
+`⚙︎ Used: job:implement · load:javascript · load:typescript`
+
+Use `job:<slug>` for the selected Words job, `flow:<slug>` for a
+selected flow, and `load:<slug>` for each successfully read Load
+reference. Preserve selection order and remove duplicates. Omit the
+root skill and exact paths. Omit unavailable references from the line
+and state the read failure in the normal response. Emit no trace for
+inactive question-only requests. This marker reports prompt-level
+routing, not hidden host telemetry.
+
 ## Research
 
 Research is conditional: keep routine and local work offline; research

@@ -346,6 +346,42 @@
         "Includes assumptions, limitations, and a reason further searching was stopped",
         "Writes one report note without extra summary files"
       ]
+    },
+    {
+      "id": 25,
+      "prompt": "In src/add.ts, add multiply(a, b) next to add. Keep this as a local code change and do not add a framework.",
+      "expected_output": "Adds the small function in the existing TypeScript file and reports the inline job plus JavaScript and TypeScript loads.",
+      "files": ["evals/files/no-matt-docs/src/add.ts"],
+      "trace": {
+        "parts": ["job:implement", "load:javascript", "load:typescript"]
+      },
+      "expectations": [
+        "multiply exists in src/add.ts and returns a times b"
+      ]
+    },
+    {
+      "id": 26,
+      "prompt": "In Tabs.tsx, implement the explicitly requested custom accessible tabs behavior in the existing file. Do not add a dependency or a new file.",
+      "expected_output": "Preserves the custom implementation and reports all selected TSX/UI parts once in Load order.",
+      "files": ["evals/files/custom-component/src/Tabs.tsx"],
+      "trace": {
+        "parts": ["job:implement", "load:react", "load:javascript", "load:typescript", "load:ui"]
+      },
+      "expectations": [
+        "Keeps the custom Tabs implementation in src/Tabs.tsx"
+      ]
+    },
+    {
+      "id": 27,
+      "prompt": "Read src/task.ts and tell me what it exports. Do not modify files, browse, research, or create any artifacts.",
+      "expected_output": "Answers the question without activating the code-writing skill trace.",
+      "files": ["evals/files/research-routing/src/task.ts"],
+      "trace": {
+        "mode": "absent"
+      },
+      "expectations": [
+        "The response answers from src/task.ts without modifying the fixture"
+      ]
     }
   ]
 }
