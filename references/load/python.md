@@ -31,8 +31,9 @@ the module that calls it. A package split waits for a second importer.
 ## Errors and defaults
 
 `except:` and `except Exception: pass` (or log-and-continue without the
-exception) swallow bugs. Name the exception you can handle. Bare `except:`
-is never correct.
+exception) swallow bugs when used as recovery. Name the exception you can
+handle. If cleanup must also run for `BaseException` subclasses, prefer
+`finally`; if a bare catch is unavoidable for cleanup, re-raise immediately.
 
 Mutable defaults (`def f(xs=[])`) leak across calls. Use `None` and assign
 inside.
@@ -71,8 +72,10 @@ conditional `UPDATE … WHERE available` is a race. Do not hold a
 ## I/O and money
 
 `requests.get(url)` and `httpx` with `timeout=None` hang the worker.
-Always pass `timeout=` (connect, read). Then `raise_for_status()` (or
-check status) before `.json()`. A 500 body is not data. Do not invent
+Pass an explicit connect/read timeout unless the surrounding client already
+enforces a bounded deadline. Call `raise_for_status()` (or check status)
+before accepting `.json()` as success. You may parse a structured error body
+to construct a useful failure; a 500 body is not successful data. Do not invent
 a session per call if the file already has one. `assert` is not a
 trust-boundary check (`-O` strips it). Raise. A probe goes in a file
 you already touch (`if __name__ == "__main__"`); do not create
@@ -116,8 +119,9 @@ with 200 is not an error — `HTTPException`. Don't
 No `print(...)` in production modules. No unused imports or unused
 bindings. A used name is imported. Don't shadow `dict` / `list` /
 `id` / `type`. Don't `if cond: return True` / `else: return False`
-— `return cond`. Else after `return` is noise. Same expression
-twice in one function → bind. Don't invent a dense
+— `return cond`. Else after `return` is noise. Bind a repeated expression only
+when one evaluation preserves mutation, timing, exceptions, and observed
+state; leave intentionally repeated or stateful calls alone. Don't invent a dense
 `reduce`/`lambda` one-liner next to a for-loop file; match this
 file's comprehension vs append. Do not leak JS idioms (`.push`,
 `.forEach`, `===`). `assert True` is not a test. No

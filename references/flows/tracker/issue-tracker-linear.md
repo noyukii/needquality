@@ -38,7 +38,7 @@ Create a Linear issue.
 
 ## Wayfinding operations
 
-Used by [wayfinder](../wayfinder/SKILL.md). The **map** is a
+Used by [wayfinder](../wayfinder.md). The **map** is a
 single issue; tickets are child issues.
 
 - **Map**: one issue labelled `wayfinder:map` (or that role in

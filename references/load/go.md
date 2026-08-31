@@ -109,7 +109,9 @@ No `fmt.Println` / `log.Println` debug in library packages. No unused
 imports (the compiler will stop you — do not "comment them out for
 later"). A used name is imported. Don't wrap a boolean
 (`return cond`, not `if cond { return true }`). Else after
-`return` is noise. Same expression twice in one function → bind.
+`return` is noise. Bind a repeated expression only when one evaluation
+preserves mutation, timing, exceptions, and observed state; leave intentionally
+repeated or stateful calls alone.
 No API keys in source. Never `tls.Config{InsecureSkipVerify: true}` to
 silence a cert. Never `filepath.Join(uploadDir, r.FormValue("name"))`
 into `os.Open` / `http.ServeFile` / `http.Dir`.

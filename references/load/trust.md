@@ -68,9 +68,10 @@ you already have an ordered unique column.
 Pass `timeout`, `AbortSignal`, or a context deadline.
 
 **HTTP success is 2xx (200–299).** `fetch` only throws on network error.
-Check `res.ok` / `raise_for_status()` / `status/100 == 2` before
-`.json()`. `StatusOK` is 200 only — 201/204 are success. A 5xx body is
-not data.
+Check `res.ok` / `raise_for_status()` / `status/100 == 2` before treating a
+parsed body as success. Parse a structured error body only to construct the
+failure. `StatusOK` is 200 only — 201/204 are success. A 5xx body is not
+successful data.
 
 Retry of create/charge/order needs an **idempotency key you persist**
 (or a unique constraint). Minting `crypto.randomUUID()` per attempt,
@@ -138,9 +139,12 @@ Grep the schema before writing SQL; do not guess column names.
 
 ## Webhooks, money, CORS, errors, logs
 
-Webhooks are public POST. Verify the signature (timing-safe) on the
-raw body before acting. Unsigned is anyone's endpoint. Idempotent on
-event id. Ack, then queue. Don't do the slow work in the request.
+Webhooks are public POST. Read the raw body in the provider-required form,
+verify the signature and basic envelope, then deduplicate and durably store or
+enqueue the event. Return success only after durable acceptance. Process slow
+business work asynchronously and idempotently by event id.
+Provider references: [Stripe webhooks](https://docs.stripe.com/webhooks) and
+[GitHub webhook best practices](https://docs.github.com/en/webhooks/using-webhooks/best-practices-for-using-webhooks).
 
 Money is not `float`. Decimal or integer cents. Prefer a decimal
 string on the wire. JS `number` reintroduces binary float.
@@ -170,8 +174,12 @@ TTL; user-specific data is not a global key. Don't read `cookies()` /
 
 `NEXT_PUBLIC_` / `VITE_` / `REACT_APP_` / `EXPO_PUBLIC_` is public. Service-role,
 Stripe, and OpenAI keys stay on the server. Don't pass them (or the
-session) into a Client Component. RLS: `USING (true)` or no policy is
-open. Don't `force-cache` / statically shell data that varies on
+session) into a Client Component. With PostgreSQL RLS enabled, no applicable
+policy is default-deny. `USING (true)` intentionally permits every row covered
+by that policy. Table owners and roles with `BYPASSRLS` normally bypass RLS;
+use `FORCE ROW LEVEL SECURITY` when the owner must be subject to policies.
+See [PostgreSQL row security](https://www.postgresql.org/docs/current/ddl-rowsecurity.html).
+Don't `force-cache` / statically shell data that varies on
 `cookies` / `Authorization`. `next/image` `src` of a user URL is
 SSRF — allowlist hosts. Passwords: argon2/scrypt/bcrypt + timing-safe
 compare, not SHA-256/`==`. Don't use `Host` / `x-forwarded-host` for
@@ -190,6 +198,6 @@ Don't run, generate, or "just try":
 
 Quote paths that contain spaces. Production database URLs stay out of
 the session. Acknowledging "DO NOT RUN / don't delete" in prose and
-then executing it is the same failure as ignoring it. Two failures
-then stop still applies: a destructive command that error'd is not a
-prompt to broaden the path.
+then executing it is the same failure as ignoring it. A destructive command
+that failed is not a prompt to broaden the path. Recheck the exact target and
+authorization before choosing a different diagnostic.

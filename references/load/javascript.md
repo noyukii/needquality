@@ -32,7 +32,9 @@ A floating promise (`fetch(...)` with no `await` / `.catch`,
 `doWork()` fired from a handler) is an unhandled rejection — Express 4
 hangs, Node dies. `fetch` only throws on network failure. HTTP
 success is 2xx: check `res.ok` (or `status/100 == 2`) before
-`.json()`. A 5xx body is not data. `Promise.allSettled` then keeping
+accepting `.json()` as success. You may parse a structured error body
+to construct a useful failure, but a 5xx body is not successful data.
+`Promise.allSettled` then keeping
 only `fulfilled` is invented success. After `res.json` / `res.send`,
 `return` — a second write is headers-already-sent.
 
@@ -110,7 +112,10 @@ string is `shell=True`. Tokens: `crypto.randomUUID` / Web Crypto, not
 Never `NODE_TLS_REJECT_UNAUTHORIZED=0` / `rejectUnauthorized: false`.
 
 Webhook route: verify the HMAC on the *raw* body (timing-safe)
-before acting. Unsigned POST is public.
+before acting. After verifying the envelope, deduplicate and durably
+store or enqueue the event; acknowledge only after durable acceptance,
+then run slow business work asynchronously and idempotently. Unsigned
+POST is public.
 
 `new PrismaClient()` (or a new pool) inside a handler is slop — one
 module-scoped client; pooler URL in serverless. Module-scope
@@ -130,8 +135,9 @@ helper, not `.slice(0, n)` on user text.
 A `node --test` probe goes in a file you already touch. Do not
 create `*.test.js`. A used name is imported. No unused bindings.
 Don't `if (cond) return true; else return false` — `return cond`.
-Else after `return` is noise. Same expression twice in one
-function → bind. `obj.fn?.()` of a method this file's type or
+Else after `return` is noise. Bind a repeated expression only when one
+evaluation preserves mutation, timing, exceptions, and observed state; leave
+intentionally repeated or stateful calls alone. `obj.fn?.()` of a method this file's type or
 imports do not have is a ghost. CSRF / JWT / public env / SQL:
 [trust.md](trust.md) when this patch does HTTP or a store.
 

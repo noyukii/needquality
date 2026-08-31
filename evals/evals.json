@@ -1,228 +1,573 @@
 {
-  "skill_name": "needquality",
+  "version": 2,
   "evals": [
     {
       "id": 1,
       "prompt": "In src/users.ts, add a createUser function that takes a raw request body (unknown) and creates a user. Email must be valid, name is required, and duplicate emails should fail. Use the existing helpers in the file. Don't add a framework.",
-      "expected_output": "createUser parses unknown input, reuses existing email/name helpers, fails with a real error on invalid/duplicate input, no as-any, no swallowed catch, no narrating comments.",
-      "files": ["evals/files/add-endpoint/src/users.ts"],
-      "expectations": [
-        "createUser exists and accepts unknown (or a raw body), not a pre-typed User",
-        "Reuses isEmail — does not introduce a second email regex",
-        "Reuses requireName for the name field",
-        "Reuses insertUser (the unique-insert helper) — does not findByEmail then push at the caller",
-        "No as any, as unknown as T, as User, as string, or @ts-ignore on the body",
-        "Invalid or duplicate input fails with an error — does not return a placeholder user",
-        "Does not take id from the body as the new user's id",
-        "No empty catch and no catch that only logs then continues",
-        "No comments that restate the next line (Import / Return / Helper)",
-        "No extra UserService, factory, or new util file",
-        "Does not add Express, Next, or a new app.ts"
-      ]
+      "files": [
+        "evals/files/add-endpoint/src/users.ts"
+      ],
+      "name": "in-src-users-ts-add-a-createuser",
+      "critical": false,
+      "rubric": [
+        {
+          "id": "quality-1",
+          "text": "createUser exists and accepts unknown (or a raw body), not a pre-typed User"
+        },
+        {
+          "id": "quality-2",
+          "text": "Reuses isEmail — does not introduce a second email regex"
+        },
+        {
+          "id": "quality-3",
+          "text": "Reuses requireName for the name field"
+        },
+        {
+          "id": "quality-4",
+          "text": "Reuses insertUser (the unique-insert helper) — does not findByEmail then push at the caller"
+        },
+        {
+          "id": "quality-5",
+          "text": "No as any, as unknown as T, as User, as string, or @ts-ignore on the body"
+        },
+        {
+          "id": "quality-6",
+          "text": "Invalid or duplicate input fails with an error — does not return a placeholder user"
+        },
+        {
+          "id": "quality-7",
+          "text": "Does not take id from the body as the new user's id"
+        },
+        {
+          "id": "quality-8",
+          "text": "No empty catch and no catch that only logs then continues"
+        },
+        {
+          "id": "quality-9",
+          "text": "No comments that restate the next line (Import / Return / Helper)"
+        },
+        {
+          "id": "quality-10",
+          "text": "No extra UserService, factory, or new util file"
+        },
+        {
+          "id": "quality-11",
+          "text": "Does not add Express, Next, or a new app.ts"
+        },
+        {
+          "id": "quality-12",
+          "text": "Final response is compact and outcome-first: for this ordinary implementation task it uses no more than four short bullets (excluding any trace), states what changed and the fresh verification command/result, and omits a walkthrough, file-by-file dump, repeated prompt text, full code, or a large diff"
+        }
+      ],
+      "checks": []
     },
     {
       "id": 2,
       "prompt": "In reports.py, add a function that sums the 'amount' column from a list of CSV row dicts (keys are strings, values are strings). Invalid rows should not silently become zero. Reuse what already exists in this folder.",
-      "expected_output": "Sums via the existing parse_money helper, does not reimplement money parsing, does not hide bad rows behind 0, no print debug, no mutable-default traps.",
-      "files": ["evals/files/reuse-helper/billing.py", "evals/files/reuse-helper/reports.py"],
-      "expectations": [
-        "reports.py imports and calls parse_money from billing",
-        "Does not reimplement Decimal/float parsing of amounts",
-        "Invalid amount is not converted to 0 — error propagates or is raised",
-        "Missing amount key is not treated as 0 via .get('amount', '0') or similar",
-        "No print() debug leftovers",
-        "Summation lives in reports.py, not a new util module"
-      ]
+      "files": [
+        "evals/files/reuse-helper/billing.py",
+        "evals/files/reuse-helper/reports.py"
+      ],
+      "name": "in-reports-py-add-a-function-that",
+      "critical": false,
+      "rubric": [
+        {
+          "id": "quality-1",
+          "text": "reports.py imports and calls parse_money from billing"
+        },
+        {
+          "id": "quality-2",
+          "text": "Does not reimplement Decimal/float parsing of amounts"
+        },
+        {
+          "id": "quality-3",
+          "text": "Invalid amount is not converted to 0 — error propagates or is raised"
+        },
+        {
+          "id": "quality-4",
+          "text": "Missing amount key is not treated as 0 via .get('amount', '0') or similar"
+        },
+        {
+          "id": "quality-5",
+          "text": "No print() debug leftovers"
+        },
+        {
+          "id": "quality-6",
+          "text": "Summation lives in reports.py, not a new util module"
+        }
+      ],
+      "checks": []
     },
     {
       "id": 3,
       "prompt": "load_config in config.py crashes when the file is missing or the JSON is invalid. Make it reliable: the caller needs to know that loading failed. Do not invent a config.",
-      "expected_output": "Missing/invalid files return or raise an error the caller can handle; no empty except, no returning {} on failure, no print leftovers.",
-      "files": ["evals/files/boundary-errors/config.py"],
-      "expectations": [
-        "Missing file is a failure the caller can observe (raise or Result), not a crash traceback from an unhandled Path.read_text alone without context — and not a silent default",
-        "Invalid JSON is a failure the caller can observe",
-        "Missing 'app' key is a failure — does not invent a config dict",
-        "Does not return {} or a placeholder config on any failure path",
-        "No bare except: and no except Exception that returns a default",
-        "No print() leftovers"
-      ]
+      "files": [
+        "evals/files/boundary-errors/config.py"
+      ],
+      "name": "load-config-in-config-py-crashes-when",
+      "critical": false,
+      "rubric": [
+        {
+          "id": "quality-1",
+          "text": "Missing file is a failure the caller can observe (raise or Result), not a crash traceback from an unhandled Path.read_text alone without context — and not a silent default"
+        },
+        {
+          "id": "quality-2",
+          "text": "Invalid JSON is a failure the caller can observe"
+        },
+        {
+          "id": "quality-3",
+          "text": "Missing 'app' key is a failure — does not invent a config dict"
+        },
+        {
+          "id": "quality-4",
+          "text": "Does not return {} or a placeholder config on any failure path"
+        },
+        {
+          "id": "quality-5",
+          "text": "No bare except: and no except Exception that returns a default"
+        },
+        {
+          "id": "quality-6",
+          "text": "No print() leftovers"
+        }
+      ],
+      "checks": []
     },
     {
       "id": 4,
       "prompt": "In invoices.ts, add getInvoice(id) for the current user. Use existing helpers. Don't add a framework.",
-      "expected_output": "getInvoice scopes to getSession().userId; other owners fail; userId is not taken from the client/body.",
-      "files": ["evals/files/scoped-read/invoices.ts"],
-      "expectations": [
-        "getInvoice exists and takes an invoice id",
-        "Uses getSession (or equivalent) so the owner is the session user",
-        "Does not return findById(id) unscoped — scope in the lookup (ownerId from session)",
-        "Another user's invoice id fails (throw or undefined), not a successful Invoice",
-        "Does not take userId/ownerId from the caller as a client field",
-        "No extra service class or new util file"
-      ]
+      "files": [
+        "evals/files/scoped-read/invoices.ts"
+      ],
+      "name": "in-invoices-ts-add-getinvoice-id-for",
+      "critical": true,
+      "rubric": [
+        {
+          "id": "quality-1",
+          "text": "getInvoice exists and takes an invoice id"
+        },
+        {
+          "id": "quality-2",
+          "text": "Uses getSession (or equivalent) so the owner is the session user"
+        },
+        {
+          "id": "quality-3",
+          "text": "Does not return findById(id) unscoped — scope in the lookup (ownerId from session)"
+        },
+        {
+          "id": "quality-4",
+          "text": "Another user's invoice id fails (throw or undefined), not a successful Invoice"
+        },
+        {
+          "id": "quality-5",
+          "text": "Does not take userId/ownerId from the caller as a client field"
+        },
+        {
+          "id": "quality-6",
+          "text": "No extra service class or new util file"
+        }
+      ],
+      "checks": []
     },
     {
       "id": 5,
       "prompt": "In slots.ts, add reserve(slotId) that marks a free slot reserved. Two requests may run at once. Reuse what already exists in this folder. Don't add a framework.",
-      "expected_output": "Uses compareAndSetReserved (or equivalent CAS); does not check-then-saveSlot; conflict if already reserved.",
-      "files": ["evals/files/atomic-reserve/store.ts", "evals/files/atomic-reserve/slots.ts"],
-      "expectations": [
-        "slots.ts imports and calls compareAndSetReserved from store",
-        "Does not implement reserve as getSlot + if (!reserved) saveSlot",
-        "Already-reserved slot is a failure the caller can observe",
-        "Missing slot id is a failure, not a silent create",
-        "No setTimeout/sleep",
-        "No extra util module",
-        "Does not add Prisma, a database client, or a new package"
-      ]
+      "files": [
+        "evals/files/atomic-reserve/store.ts",
+        "evals/files/atomic-reserve/slots.ts"
+      ],
+      "name": "in-slots-ts-add-reserve-slotid-that",
+      "critical": true,
+      "rubric": [
+        {
+          "id": "quality-1",
+          "text": "slots.ts imports and calls compareAndSetReserved from store"
+        },
+        {
+          "id": "quality-2",
+          "text": "Does not implement reserve as getSlot + if (!reserved) saveSlot"
+        },
+        {
+          "id": "quality-3",
+          "text": "Already-reserved slot is a failure the caller can observe"
+        },
+        {
+          "id": "quality-4",
+          "text": "Missing slot id is a failure, not a silent create"
+        },
+        {
+          "id": "quality-5",
+          "text": "No setTimeout/sleep"
+        },
+        {
+          "id": "quality-6",
+          "text": "No extra util module"
+        },
+        {
+          "id": "quality-7",
+          "text": "Does not add Prisma, a database client, or a new package"
+        }
+      ],
+      "checks": []
     },
     {
       "id": 6,
       "prompt": "load_prices in prices.py must return the JSON list from PRICES_URL. The caller needs to know if loading failed. Do not invent a list. Do not take a URL from the caller. Don't add a library.",
-      "expected_output": "timeout set; uses PRICES_URL not a caller URL; 4xx/5xx is a failure (status check) before json(); missing/invalid JSON fails; no [] on error.",
-      "files": ["evals/files/outbound-get/prices.py"],
-      "expectations": [
-        "Uses PRICES_URL — does not accept a caller-supplied URL",
-        "Outbound call has a timeout (urllib/requests/httpx timeout= or equivalent — do not add a package)",
-        "Non-2xx is a failure the caller can observe — not res.json() of a 500",
-        "Invalid JSON is a failure",
-        "Does not return [] or a placeholder list on any failure path",
-        "No bare except: and no except Exception that returns a default",
-        "No print() leftovers"
-      ]
+      "files": [
+        "evals/files/outbound-get/prices.py"
+      ],
+      "name": "load-prices-in-prices-py-must-return",
+      "critical": true,
+      "rubric": [
+        {
+          "id": "quality-1",
+          "text": "Uses PRICES_URL — does not accept a caller-supplied URL"
+        },
+        {
+          "id": "quality-2",
+          "text": "Outbound call has a timeout (urllib/requests/httpx timeout= or equivalent — do not add a package)"
+        },
+        {
+          "id": "quality-3",
+          "text": "Non-2xx is a failure the caller can observe — not res.json() of a 500"
+        },
+        {
+          "id": "quality-4",
+          "text": "Invalid JSON is a failure"
+        },
+        {
+          "id": "quality-5",
+          "text": "Does not return [] or a placeholder list on any failure path"
+        },
+        {
+          "id": "quality-6",
+          "text": "No bare except: and no except Exception that returns a default"
+        },
+        {
+          "id": "quality-7",
+          "text": "No print() leftovers"
+        }
+      ],
+      "checks": []
     },
     {
       "id": 7,
       "prompt": "In invoices.ts, add createInvoice that takes a raw request body (unknown). Total is required. Use existing helpers. Don't add a framework.",
-      "expected_output": "createInvoice parses unknown input, ownerId from getSession() not the body, insertInvoice for the write, body ownerId/userId ignored.",
-      "files": ["evals/files/scoped-read/invoices.ts"],
-      "expectations": [
-        "createInvoice exists and accepts unknown (or a raw body)",
-        "ownerId comes from getSession().userId",
-        "Does not take ownerId/userId from the body as the owner",
-        "Reuses insertInvoice for the write",
-        "Missing or invalid total fails with an error — does not invent a total",
-        "No extra service class or new util file"
-      ]
+      "files": [
+        "evals/files/scoped-read/invoices.ts"
+      ],
+      "name": "in-invoices-ts-add-createinvoice-that-takes",
+      "critical": true,
+      "rubric": [
+        {
+          "id": "quality-1",
+          "text": "createInvoice exists and accepts unknown (or a raw body)"
+        },
+        {
+          "id": "quality-2",
+          "text": "ownerId comes from getSession().userId"
+        },
+        {
+          "id": "quality-3",
+          "text": "Does not take ownerId/userId from the body as the owner"
+        },
+        {
+          "id": "quality-4",
+          "text": "Reuses insertInvoice for the write"
+        },
+        {
+          "id": "quality-5",
+          "text": "Missing or invalid total fails with an error — does not invent a total"
+        },
+        {
+          "id": "quality-6",
+          "text": "No extra service class or new util file"
+        }
+      ],
+      "checks": []
     },
     {
       "id": 8,
       "prompt": "In profile.jsx, show the user's full name (firstName + space + lastName) in the existing section. Don't add a library. Don't fetch.",
-      "expected_output": "fullName (or equivalent) derived during render; no useEffect/useState copy of the name; no nested function component; lastName is used.",
-      "files": ["evals/files/react-derived/profile.jsx"],
-      "expectations": [
-        "Renders firstName and lastName together (full name visible in the tree)",
-        "Does not use useEffect to copy first/last into state",
-        "Does not add useState whose only job is storing the concatenated name",
-        "Does not define a nested function component inside Profile",
-        "No extra util file or wrapper component file"
-      ]
+      "files": [
+        "evals/files/react-derived/profile.jsx"
+      ],
+      "name": "in-profile-jsx-show-the-user-s",
+      "critical": false,
+      "rubric": [
+        {
+          "id": "quality-1",
+          "text": "Renders firstName and lastName together (full name visible in the tree)"
+        },
+        {
+          "id": "quality-2",
+          "text": "Does not use useEffect to copy first/last into state"
+        },
+        {
+          "id": "quality-3",
+          "text": "Does not add useState whose only job is storing the concatenated name"
+        },
+        {
+          "id": "quality-4",
+          "text": "Does not define a nested function component inside Profile"
+        },
+        {
+          "id": "quality-5",
+          "text": "No extra util file or wrapper component file"
+        }
+      ],
+      "checks": []
     },
     {
       "id": 9,
       "prompt": "In settings.js, implement mergeSettings(raw) so a JSON string of user settings overlays defaults. Only theme and locale are allowed. Invalid JSON should fail. Don't add a library.",
-      "expected_output": "JSON.parse with failure on invalid JSON; allowlisted theme/locale; no Object.assign/merge of the parsed object (prototype pollution).",
-      "files": ["evals/files/js-merge/settings.js"],
-      "expectations": [
-        "Invalid JSON is a failure the caller can observe (throw), not {}",
-        "Only theme and locale from the payload are applied — other keys ignored",
-        "Does not Object.assign(defaults, parsed) or lodash/recursive-merge the parsed object",
-        "Does not copy __proto__ / constructor / prototype from the payload onto defaults",
-        "Unknown or missing theme/locale keep the default (or fail if theme is an invalid value — either is ok)",
-        "No extra util file"
-      ]
+      "files": [
+        "evals/files/js-merge/settings.js"
+      ],
+      "name": "in-settings-js-implement-mergesettings-raw-so",
+      "critical": true,
+      "rubric": [
+        {
+          "id": "quality-1",
+          "text": "Invalid JSON is a failure the caller can observe (throw), not {}"
+        },
+        {
+          "id": "quality-2",
+          "text": "Only theme and locale from the payload are applied — other keys ignored"
+        },
+        {
+          "id": "quality-3",
+          "text": "Does not Object.assign(defaults, parsed) or lodash/recursive-merge the parsed object"
+        },
+        {
+          "id": "quality-4",
+          "text": "Does not copy __proto__ / constructor / prototype from the payload onto defaults"
+        },
+        {
+          "id": "quality-5",
+          "text": "Unknown or missing theme/locale keep the default (or fail if theme is an invalid value — either is ok)"
+        },
+        {
+          "id": "quality-6",
+          "text": "No extra util file"
+        }
+      ],
+      "checks": []
     },
     {
       "id": 10,
       "prompt": "loadPrices in prices.js must return the JSON list from PRICES_URL. The caller needs to know if loading failed. Do not invent a list. Do not take a URL from the caller. Don't add a library.",
-      "expected_output": "AbortSignal or timeout; uses PRICES_URL not a caller URL; non-2xx is a failure before json(); invalid JSON fails; no [] on error.",
-      "files": ["evals/files/outbound-get-js/prices.js"],
-      "expectations": [
-        "Uses PRICES_URL — does not accept a caller-supplied URL",
-        "Outbound fetch has AbortSignal or an equivalent timeout",
-        "Non-2xx is a failure the caller can observe — not res.json() of a 500",
-        "Invalid JSON is a failure",
-        "Does not return [] or a placeholder list on any failure path",
-        "No empty catch that returns a default",
-        "No console.log leftovers"
-      ]
+      "files": [
+        "evals/files/outbound-get-js/prices.js"
+      ],
+      "name": "loadprices-in-prices-js-must-return-the",
+      "critical": true,
+      "rubric": [
+        {
+          "id": "quality-1",
+          "text": "Uses PRICES_URL — does not accept a caller-supplied URL"
+        },
+        {
+          "id": "quality-2",
+          "text": "Outbound fetch has AbortSignal or an equivalent timeout"
+        },
+        {
+          "id": "quality-3",
+          "text": "Non-2xx is a failure the caller can observe — not res.json() of a 500"
+        },
+        {
+          "id": "quality-4",
+          "text": "Invalid JSON is a failure"
+        },
+        {
+          "id": "quality-5",
+          "text": "Does not return [] or a placeholder list on any failure path"
+        },
+        {
+          "id": "quality-6",
+          "text": "No empty catch that returns a default"
+        },
+        {
+          "id": "quality-7",
+          "text": "No console.log leftovers"
+        }
+      ],
+      "checks": []
     },
     {
       "id": 11,
       "prompt": "In users.sql, add a statement that deactivates the user whose email is ada@example.com. Match the file. Don't add a framework.",
-      "expected_output": "UPDATE with WHERE on email (or id looked up by email); does not UPDATE/DELETE the whole table; no DROP.",
-      "files": ["evals/files/sql-write/users.sql"],
-      "expectations": [
-        "Statement sets active to false (or equivalent deactivate) for ada@example.com",
-        "Has a WHERE that keys the row (email or id) — not a bare UPDATE/DELETE",
-        "Does not UPDATE or DELETE every row",
-        "Does not DROP TABLE / TRUNCATE",
-        "Does not invent columns that are not id/email/active/last_seen"
-      ]
+      "files": [
+        "evals/files/sql-write/users.sql"
+      ],
+      "name": "in-users-sql-add-a-statement-that",
+      "critical": true,
+      "rubric": [
+        {
+          "id": "quality-1",
+          "text": "Statement sets active to false (or equivalent deactivate) for ada@example.com"
+        },
+        {
+          "id": "quality-2",
+          "text": "Has a WHERE that keys the row (email or id) — not a bare UPDATE/DELETE"
+        },
+        {
+          "id": "quality-3",
+          "text": "Does not UPDATE or DELETE every row"
+        },
+        {
+          "id": "quality-4",
+          "text": "Does not DROP TABLE / TRUNCATE"
+        },
+        {
+          "id": "quality-5",
+          "text": "Does not invent columns that are not id/email/active/last_seen"
+        }
+      ],
+      "checks": []
     },
     {
       "id": 12,
       "prompt": "In app.py, add DELETE /items/{id} that deletes the current user's item. Reuse existing helpers. Don't add a framework.",
-      "expected_output": "Route uses Depends(get_current_user) and Depends(get_db) like get_item; store.delete_for with session user id; missing/other-owner fails; no module-global current_user.",
-      "files": ["evals/files/fastapi-depends/app.py"],
-      "expectations": [
-        "DELETE /items/{id} exists",
-        "Uses Depends(get_current_user) — does not read a module-global current user",
-        "Uses Depends(get_db) or the existing store dependency — does not open a new global Session",
-        "Reuses delete_for (or equivalent scoped delete) so another owner's item fails",
-        "Missing or other-owner id is a failure the caller can observe (HTTPException or raise), not a 200 with {error}",
-        "No extra router/service file"
-      ]
+      "files": [
+        "evals/files/fastapi-depends/app.py"
+      ],
+      "name": "in-app-py-add-delete-items-id",
+      "critical": true,
+      "rubric": [
+        {
+          "id": "quality-1",
+          "text": "DELETE /items/{id} exists"
+        },
+        {
+          "id": "quality-2",
+          "text": "Uses Depends(get_current_user) — does not read a module-global current user"
+        },
+        {
+          "id": "quality-3",
+          "text": "Uses Depends(get_db) or the existing store dependency — does not open a new global Session"
+        },
+        {
+          "id": "quality-4",
+          "text": "Reuses delete_for (or equivalent scoped delete) so another owner's item fails"
+        },
+        {
+          "id": "quality-5",
+          "text": "Missing or other-owner id is a failure the caller can observe (HTTPException or raise), not a 200 with {error}"
+        },
+        {
+          "id": "quality-6",
+          "text": "No extra router/service file"
+        }
+      ],
+      "checks": []
     },
     {
       "id": 13,
       "prompt": "In src/add.ts, add a multiply function that returns a times b. Use the existing file. Don't add a framework.",
-      "expected_output": "multiply lives in add.ts next to add; no CONTEXT.md, docs/adr, or .scratch.",
-      "files": ["evals/files/no-matt-docs/src/add.ts"],
-      "expectations": [
-        "multiply exists and returns the product of two numbers",
-        "Lives in add.ts — no new util file",
-        "CONTEXT.md is absent (skill-side-effects says CONTEXT.md: absent)",
-        "docs/adr is absent (skill-side-effects says docs/adr: absent)",
-        ".scratch is absent (skill-side-effects says .scratch: absent)"
-      ]
+      "files": [
+        "evals/files/no-matt-docs/src/add.ts"
+      ],
+      "name": "in-src-add-ts-add-a-multiply",
+      "critical": false,
+      "rubric": [
+        {
+          "id": "quality-1",
+          "text": "multiply exists and returns the product of two numbers"
+        },
+        {
+          "id": "quality-2",
+          "text": "Lives in add.ts — no new util file"
+        },
+        {
+          "id": "quality-3",
+          "text": "CONTEXT.md is absent (skill-side-effects says CONTEXT.md: absent)"
+        },
+        {
+          "id": "quality-4",
+          "text": "docs/adr is absent (skill-side-effects says docs/adr: absent)"
+        },
+        {
+          "id": "quality-5",
+          "text": ".scratch is absent (skill-side-effects says .scratch: absent)"
+        }
+      ],
+      "checks": []
     },
     {
       "id": 14,
       "prompt": "In Hero.tsx, make the Continue button a directional next-step CTA. Use what is already in the file. Don't add a library.",
-      "expected_output": "Continue keeps its label and gains a directional lucide-react icon (ArrowRight or similar). No unicode arrow. No second icon package.",
-      "files": ["evals/files/cta-icon/Hero.tsx"],
-      "expectations": [
-        "Imports a directional icon from lucide-react (ArrowRight, ChevronRight, ArrowUpRight, MoveRight, or similar)",
-        "The Continue button (or equivalent next-step control) renders that icon as a child",
-        "Button or link text does not contain → ↗ ▸ › »",
-        "Does not import from @heroicons, @tabler, react-icons, or a second icon package",
-        "No extra util file or new component file"
-      ]
+      "files": [
+        "evals/files/cta-icon/Hero.tsx"
+      ],
+      "name": "in-hero-tsx-make-the-continue-button",
+      "critical": false,
+      "rubric": [
+        {
+          "id": "quality-1",
+          "text": "Imports a directional icon from lucide-react (ArrowRight, ChevronRight, ArrowUpRight, MoveRight, or similar)"
+        },
+        {
+          "id": "quality-2",
+          "text": "The Continue button (or equivalent next-step control) renders that icon as a child"
+        },
+        {
+          "id": "quality-3",
+          "text": "Button or link text does not contain → ↗ ▸ › »"
+        },
+        {
+          "id": "quality-4",
+          "text": "Does not import from @heroicons, @tabler, react-icons, or a second icon package"
+        },
+        {
+          "id": "quality-5",
+          "text": "No extra util file or new component file"
+        }
+      ],
+      "checks": []
     },
     {
       "id": 15,
       "prompt": "In this existing MkDocs repository, add an informational callout to docs/index.md. Do not add a CSS framework.",
-      "expected_output": "Extends the existing MkDocs/Material baseline and stylesheet; does not build a standalone theme or add unrelated dependencies.",
       "files": [
         "evals/files/mkdocs-template/mkdocs.yml",
         "evals/files/mkdocs-template/docs/index.md",
         "evals/files/mkdocs-template/docs/stylesheets/extra.css"
       ],
-      "expectations": [
-        "Keeps theme.name: material in mkdocs.yml",
-        "Uses the existing docs/stylesheets/extra.css or existing Material configuration for the callout",
-        "Adds the requested informational callout to docs/index.md",
-        "Does not create a standalone custom theme with a new main.html/base.html or theme directory",
-        "Does not add a CSS framework or unrelated package",
-        "Callout remains readable and does not rely on color alone for meaning"
-      ]
+      "name": "in-this-existing-mkdocs-repository-add-an",
+      "critical": false,
+      "rubric": [
+        {
+          "id": "quality-1",
+          "text": "Keeps theme.name: material in mkdocs.yml"
+        },
+        {
+          "id": "quality-2",
+          "text": "Uses the existing docs/stylesheets/extra.css or existing Material configuration for the callout"
+        },
+        {
+          "id": "quality-3",
+          "text": "Adds the requested informational callout to docs/index.md"
+        },
+        {
+          "id": "quality-4",
+          "text": "Does not create a standalone custom theme with a new main.html/base.html or theme directory"
+        },
+        {
+          "id": "quality-5",
+          "text": "Does not add a CSS framework or unrelated package"
+        },
+        {
+          "id": "quality-6",
+          "text": "Callout remains readable and does not rely on color alone for meaning"
+        }
+      ],
+      "checks": []
     },
     {
       "id": 16,
       "prompt": "Add a dismissible informational Notice component to this React component library. Do not add a dependency or clone a primitive.",
-      "expected_output": "Notice composes existing Alert and Button primitives, follows the existing story pattern, exposes the component, and keeps dismissal accessible.",
       "files": [
         "evals/files/component-library/packages/ui/src/Alert.tsx",
         "evals/files/component-library/packages/ui/src/Button.tsx",
@@ -231,157 +576,1271 @@
         "evals/files/component-library/packages/ui/src/Notice.stories.tsx",
         "evals/files/component-library/packages/ui/src/index.ts"
       ],
-      "expectations": [
-        "Adds a Notice component rather than replacing or duplicating Alert",
-        "Notice imports and composes the existing Alert primitive",
-        "Notice uses the existing Button primitive for dismissal or follows its native button contract",
-        "Dismissal has an accessible name and a keyboard-operable button",
-        "Adds a Notice story following the existing Alert story structure",
-        "Exports Notice from the component-library entrypoint",
-        "Does not add a dependency, second UI kit, custom focus trap, or forwarding-only wrapper"
-      ]
+      "name": "add-a-dismissible-informational-notice-component-to",
+      "critical": false,
+      "rubric": [
+        {
+          "id": "quality-1",
+          "text": "Adds a Notice component rather than replacing or duplicating Alert"
+        },
+        {
+          "id": "quality-2",
+          "text": "Notice imports and composes the existing Alert primitive"
+        },
+        {
+          "id": "quality-3",
+          "text": "Notice uses the existing Button primitive for dismissal or follows its native button contract"
+        },
+        {
+          "id": "quality-4",
+          "text": "Dismissal has an accessible name and a keyboard-operable button"
+        },
+        {
+          "id": "quality-5",
+          "text": "Adds a Notice story following the existing Alert story structure"
+        },
+        {
+          "id": "quality-6",
+          "text": "Exports Notice from the component-library entrypoint"
+        },
+        {
+          "id": "quality-7",
+          "text": "Does not add a dependency, second UI kit, custom focus trap, or forwarding-only wrapper"
+        }
+      ],
+      "checks": []
     },
     {
       "id": 17,
       "prompt": "Build this tabs component as an explicitly custom implementation. The existing app has no component library, and this custom keyboard interaction is required. Do not substitute a template or invent a dependency.",
-      "expected_output": "Honors the explicit custom request while implementing an accessible tablist, tabs, panels, focus behavior, and selected relationships.",
       "files": [
         "evals/files/custom-component/package.json",
         "evals/files/custom-component/src/Tabs.tsx"
       ],
-      "expectations": [
-        "Keeps a custom Tabs implementation in src/Tabs.tsx",
-        "Uses tablist, tab, and tabpanel semantics or equivalent accessible relationships",
-        "Exposes selected state and aria-controls/aria-labelledby relationships",
-        "Provides a keyboard path for moving between tabs and activating or selecting one",
-        "Provides a visible focus style or preserves a clear focus indicator",
-        "Does not add a dependency or reject the explicitly requested custom implementation"
-      ]
+      "name": "build-this-tabs-component-as-an-explicitly",
+      "critical": false,
+      "rubric": [
+        {
+          "id": "quality-1",
+          "text": "Keeps a custom Tabs implementation in src/Tabs.tsx"
+        },
+        {
+          "id": "quality-2",
+          "text": "Uses tablist, tab, and tabpanel semantics or equivalent accessible relationships"
+        },
+        {
+          "id": "quality-3",
+          "text": "Exposes selected state and aria-controls/aria-labelledby relationships"
+        },
+        {
+          "id": "quality-4",
+          "text": "Provides a keyboard path for moving between tabs and activating or selecting one"
+        },
+        {
+          "id": "quality-5",
+          "text": "Provides a visible focus style or preserves a clear focus indicator"
+        },
+        {
+          "id": "quality-6",
+          "text": "Does not add a dependency or reject the explicitly requested custom implementation"
+        }
+      ],
+      "checks": []
     },
     {
       "id": 18,
       "prompt": "In this web app, add formatSlug in the existing format.ts file. This is a logic-only utility change. Do not change UI, docs, templates, or dependencies.",
-      "expected_output": "Adds the small utility in the existing file without UI or template scaffolding.",
       "files": [
         "evals/files/web-logic-only/src/format.ts"
       ],
-      "expectations": [
-        "formatSlug exists in src/format.ts and lowercases trimmed whitespace-separated text",
-        "Does not add a page, component, docs site, template, story, or stylesheet",
-        "Does not add a dependency or new utility module",
-        "Does not rewrite unrelated existing code"
-      ]
+      "name": "in-this-web-app-add-formatslug-in",
+      "critical": false,
+      "rubric": [
+        {
+          "id": "quality-1",
+          "text": "formatSlug exists in src/format.ts and lowercases trimmed whitespace-separated text"
+        },
+        {
+          "id": "quality-2",
+          "text": "Does not add a page, component, docs site, template, story, or stylesheet"
+        },
+        {
+          "id": "quality-3",
+          "text": "Does not add a dependency or new utility module"
+        },
+        {
+          "id": "quality-4",
+          "text": "Does not rewrite unrelated existing code"
+        }
+      ],
+      "checks": []
     },
     {
       "id": 19,
       "prompt": "In src/task.ts, add subtract(a, b) and keep this as a local-only code change. Do not browse, research, or create a research note.",
-      "expected_output": "Adds subtract in the existing file without external research or research artifacts.",
-      "files": ["evals/files/research-routing/src/task.ts"],
-      "expectations": [
-        "subtract exists in task.ts and returns a - b",
-        "Does not create research.md or another research artifact",
-        "Does not add a dependency or unrelated file"
+      "files": [
+        "evals/files/research-routing/src/task.ts"
+      ],
+      "name": "in-src-task-ts-add-subtract-a",
+      "critical": true,
+      "rubric": [
+        {
+          "id": "quality-1",
+          "text": "subtract exists in task.ts and returns a - b"
+        },
+        {
+          "id": "quality-2",
+          "text": "Does not create research.md or another research artifact"
+        },
+        {
+          "id": "quality-3",
+          "text": "Does not add a dependency or unrelated file"
+        }
+      ],
+      "checks": [
+        {
+          "id": "no-web",
+          "kind": "tool_absent",
+          "tool": "web"
+        }
       ]
     },
     {
       "id": 20,
       "prompt": "Research one current fact: which Python version introduced datetime.UTC? Use an official Python source, keep this a quick lookup, and replace the placeholder in research.md with a concise cited answer.",
-      "expected_output": "Uses L1 quick research: one focused lookup, one authoritative source with date, concise answer, no deep-research ceremony.",
-      "files": ["evals/files/research-routing/research.md"],
-      "expectations": [
-        "Uses an L1-sized quick lookup: a concise answer supported by one focused authoritative source, without deep-research ceremony",
-        "Answers which Python version introduced datetime.UTC",
-        "Cites an official Python source with a source link",
-        "Does not add a gap matrix, multi-agent plan, or extra report file"
-      ]
+      "files": [
+        "evals/files/research-routing/research.md"
+      ],
+      "name": "research-one-current-fact-which-python-version",
+      "critical": true,
+      "rubric": [
+        {
+          "id": "quality-1",
+          "text": "Uses an L1-sized quick lookup: a concise answer supported by one focused authoritative source, without deep-research ceremony"
+        },
+        {
+          "id": "quality-2",
+          "text": "Answers which Python version introduced datetime.UTC"
+        },
+        {
+          "id": "quality-3",
+          "text": "Cites an official Python source with a source link"
+        },
+        {
+          "id": "quality-4",
+          "text": "Does not add a gap matrix, multi-agent plan, or extra report file"
+        }
+      ],
+      "checks": []
     },
     {
       "id": 21,
       "prompt": "Research whether this small Python project should use urllib.request or requests for its outbound fetches. Compare current official documentation, write the recommendation in research.md, and include the assumptions, answer slots, one cross-check, source links, and limitations.",
-      "expected_output": "Uses L2 targeted research: compares multiple sources, fills answer slots, makes a bounded recommendation, and exposes limitations.",
-      "files": ["evals/files/research-routing/research.md"],
-      "expectations": [
-        "Labels the work L2 or clearly describes it as targeted research",
-        "Compares urllib.request and requests with a recommendation",
-        "Includes assumptions or scope and identifies answer slots",
-        "Uses at least two relevant source links and a cross-check",
-        "Includes limitations or an explicit evidence gap"
-      ]
+      "files": [
+        "evals/files/research-routing/research.md"
+      ],
+      "name": "research-whether-this-small-python-project-should",
+      "critical": true,
+      "rubric": [
+        {
+          "id": "quality-1",
+          "text": "Labels the work L2 or clearly describes it as targeted research"
+        },
+        {
+          "id": "quality-2",
+          "text": "Compares urllib.request and requests with a recommendation"
+        },
+        {
+          "id": "quality-3",
+          "text": "Includes assumptions or scope and identifies answer slots"
+        },
+        {
+          "id": "quality-4",
+          "text": "Uses at least two relevant source links and a cross-check"
+        },
+        {
+          "id": "quality-5",
+          "text": "Includes limitations or an explicit evidence gap"
+        }
+      ],
+      "checks": []
     },
     {
       "id": 22,
       "prompt": "Do Deep Research on the best database for our compliance-sensitive production application and recommend one. Do not assume workload, compliance jurisdiction, data residency, or budget. Before searching, record the L3 classification, proposed scope, and exactly one material clarifying question in research.md; do not invent findings before it is answered.",
-      "expected_output": "Recognizes L3 and stops before expensive research because material constraints are missing; asks exactly one clarifying question and records no fabricated findings.",
-      "files": ["evals/files/research-routing/research.md"],
-      "expectations": [
-        "Labels the request L3 or clearly identifies it as deep research",
-        "Records a proposed scope or research plan before searching",
-        "Asks exactly one material clarifying question",
-        "Does not invent a database recommendation or unsupported findings before clarification",
-        "Does not cite sources as if research had already been completed"
-      ]
+      "files": [
+        "evals/files/research-routing/research.md"
+      ],
+      "name": "do-deep-research-on-the-best-database",
+      "critical": true,
+      "rubric": [
+        {
+          "id": "quality-1",
+          "text": "Labels the request L3 or clearly identifies it as deep research"
+        },
+        {
+          "id": "quality-2",
+          "text": "Records a proposed scope or research plan before searching"
+        },
+        {
+          "id": "quality-3",
+          "text": "Asks exactly one material clarifying question"
+        },
+        {
+          "id": "quality-4",
+          "text": "Does not invent a database recommendation or unsupported findings before clarification"
+        },
+        {
+          "id": "quality-5",
+          "text": "Does not cite sources as if research had already been completed"
+        }
+      ],
+      "checks": []
     },
     {
       "id": 23,
       "prompt": "Research the current official documentation for Python HTTP timeout behavior and replace the placeholder in research.md. If Firecrawl is available, state why it would help and ask me before its first call; do not call Firecrawl or any other unapproved provider until I answer.",
-      "expected_output": "Chooses an appropriate bounded level and requests Firecrawl consent before using it; no unapproved provider call is treated as authorized.",
-      "files": ["evals/files/research-routing/research.md"],
-      "expectations": [
-        "States a research level and bounded plan before external research",
-        "Explicitly says Firecrawl is opt-in or asks permission before using it",
-        "Does not claim Firecrawl results or cite fetched content before consent",
-        "Keeps the requested Python timeout topic in scope"
-      ]
+      "files": [
+        "evals/files/research-routing/research.md"
+      ],
+      "name": "research-the-current-official-documentation-for-python",
+      "critical": true,
+      "rubric": [
+        {
+          "id": "quality-1",
+          "text": "States a research level and bounded plan before external research"
+        },
+        {
+          "id": "quality-2",
+          "text": "Explicitly says Firecrawl is opt-in or asks permission before using it"
+        },
+        {
+          "id": "quality-3",
+          "text": "Does not claim Firecrawl results or cite fetched content before consent"
+        },
+        {
+          "id": "quality-4",
+          "text": "Keeps the requested Python timeout topic in scope"
+        }
+      ],
+      "checks": []
     },
     {
       "id": 24,
       "prompt": "Perform exhaustive Deep Research on current risks of AI-generated code in production software. Use primary sources, reconcile disagreements, write one complete report in research.md, and include the claim-source ledger, limitations, and the reason you stopped searching.",
-      "expected_output": "Uses L3 deep research with primary-source synthesis, a claim ledger, bounded iterative search, explicit limitations, and a stopping rationale.",
-      "files": ["evals/files/research-routing/research.md"],
-      "expectations": [
-        "Labels the work L3 or clearly identifies it as deep research",
-        "Includes an executive answer and findings organized around answer slots",
-        "Uses primary or authoritative source links and a claim-source ledger",
-        "Reconciles or bounds material disagreements",
-        "Includes assumptions, limitations, and a reason further searching was stopped",
-        "Writes one report note without extra summary files"
-      ]
+      "files": [
+        "evals/files/research-routing/research.md"
+      ],
+      "name": "perform-exhaustive-deep-research-on-current-risks",
+      "critical": true,
+      "rubric": [
+        {
+          "id": "quality-1",
+          "text": "Labels the work L3 or clearly identifies it as deep research"
+        },
+        {
+          "id": "quality-2",
+          "text": "Includes an executive answer and findings organized around answer slots"
+        },
+        {
+          "id": "quality-3",
+          "text": "Uses primary or authoritative source links and a claim-source ledger"
+        },
+        {
+          "id": "quality-4",
+          "text": "Reconciles or bounds material disagreements"
+        },
+        {
+          "id": "quality-5",
+          "text": "Includes assumptions, limitations, and a reason further searching was stopped"
+        },
+        {
+          "id": "quality-6",
+          "text": "Writes one report note without extra summary files"
+        }
+      ],
+      "checks": []
     },
     {
       "id": 25,
       "prompt": "In src/add.ts, add multiply(a, b) next to add. Keep this as a local code change and do not add a framework.",
-      "expected_output": "Adds the small function in the existing TypeScript file and reports the inline job plus JavaScript and TypeScript loads.",
-      "files": ["evals/files/no-matt-docs/src/add.ts"],
-      "trace": {
-        "parts": ["job:implement", "load:javascript", "load:typescript"]
-      },
-      "expectations": [
-        "multiply exists in src/add.ts and returns a times b"
+      "files": [
+        "evals/files/no-matt-docs/src/add.ts"
+      ],
+      "name": "in-src-add-ts-add-multiply-a",
+      "critical": true,
+      "rubric": [
+        {
+          "id": "quality-1",
+          "text": "multiply exists in src/add.ts and returns a times b"
+        }
+      ],
+      "checks": [
+        {
+          "id": "route",
+          "kind": "trace_exact",
+          "parts": [
+            "job:implement",
+            "load:javascript",
+            "load:typescript"
+          ]
+        }
       ]
     },
     {
       "id": 26,
       "prompt": "In Tabs.tsx, implement the explicitly requested custom accessible tabs behavior in the existing file. Do not add a dependency or a new file.",
-      "expected_output": "Preserves the custom implementation and reports all selected TSX/UI parts once in Load order.",
-      "files": ["evals/files/custom-component/src/Tabs.tsx"],
-      "trace": {
-        "parts": ["job:implement", "load:react", "load:javascript", "load:typescript", "load:ui"]
-      },
-      "expectations": [
-        "Keeps the custom Tabs implementation in src/Tabs.tsx"
+      "files": [
+        "evals/files/custom-component/src/Tabs.tsx"
+      ],
+      "name": "in-tabs-tsx-implement-the-explicitly-requested",
+      "critical": true,
+      "rubric": [
+        {
+          "id": "quality-1",
+          "text": "Keeps the custom Tabs implementation in src/Tabs.tsx"
+        }
+      ],
+      "checks": [
+        {
+          "id": "route",
+          "kind": "trace_exact",
+          "parts": [
+            "job:implement",
+            "load:react",
+            "load:javascript",
+            "load:typescript",
+            "load:ui"
+          ]
+        }
       ]
     },
     {
       "id": 27,
       "prompt": "Read src/task.ts and tell me what it exports. Do not modify files, browse, research, or create any artifacts.",
-      "expected_output": "Answers the question without activating the code-writing skill trace.",
-      "files": ["evals/files/research-routing/src/task.ts"],
-      "trace": {
-        "mode": "absent"
-      },
-      "expectations": [
-        "The response answers from src/task.ts without modifying the fixture"
+      "files": [
+        "evals/files/research-routing/src/task.ts"
+      ],
+      "name": "read-src-task-ts-and-tell-me",
+      "critical": true,
+      "rubric": [
+        {
+          "id": "quality-1",
+          "text": "The response answers from src/task.ts without modifying the fixture"
+        }
+      ],
+      "checks": [
+        {
+          "id": "route",
+          "kind": "trace_absent"
+        }
       ]
+    },
+    {
+      "id": 28,
+      "name": "route-ask-matt",
+      "prompt": "which flow. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "route",
+          "kind": "trace_exact",
+          "parts": [
+            "flow:ask-matt"
+          ]
+        }
+      ],
+      "rubric": [
+        {
+          "id": "names-flow",
+          "text": "The response identifies ask-matt as the selected flow without starting it."
+        }
+      ]
+    },
+    {
+      "id": 29,
+      "name": "route-code-review",
+      "prompt": "review since main. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "route",
+          "kind": "trace_exact",
+          "parts": [
+            "flow:code-review"
+          ]
+        }
+      ],
+      "rubric": [
+        {
+          "id": "names-flow",
+          "text": "The response identifies code-review as the selected flow without starting it."
+        }
+      ]
+    },
+    {
+      "id": 30,
+      "name": "route-codebase-design",
+      "prompt": "deepen this module interface. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "route",
+          "kind": "trace_exact",
+          "parts": [
+            "flow:codebase-design"
+          ]
+        }
+      ],
+      "rubric": [
+        {
+          "id": "names-flow",
+          "text": "The response identifies codebase-design as the selected flow without starting it."
+        }
+      ]
+    },
+    {
+      "id": 31,
+      "name": "route-diagnosing-bugs",
+      "prompt": "diagnose this hard bug. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "route",
+          "kind": "trace_exact",
+          "parts": [
+            "flow:diagnosing-bugs"
+          ]
+        }
+      ],
+      "rubric": [
+        {
+          "id": "names-flow",
+          "text": "The response identifies diagnosing-bugs as the selected flow without starting it."
+        }
+      ]
+    },
+    {
+      "id": 32,
+      "name": "route-domain-modeling",
+      "prompt": "sharpen the domain model. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "route",
+          "kind": "trace_exact",
+          "parts": [
+            "flow:domain-modeling"
+          ]
+        }
+      ],
+      "rubric": [
+        {
+          "id": "names-flow",
+          "text": "The response identifies domain-modeling as the selected flow without starting it."
+        }
+      ]
+    },
+    {
+      "id": 33,
+      "name": "route-fix-ci",
+      "prompt": "fix CI. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "route",
+          "kind": "trace_exact",
+          "parts": [
+            "flow:fix-ci"
+          ]
+        }
+      ],
+      "rubric": [
+        {
+          "id": "names-flow",
+          "text": "The response identifies fix-ci as the selected flow without starting it."
+        }
+      ]
+    },
+    {
+      "id": 34,
+      "name": "route-grill-me",
+      "prompt": "grill me. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "route",
+          "kind": "trace_exact",
+          "parts": [
+            "flow:grill-me"
+          ]
+        }
+      ],
+      "rubric": [
+        {
+          "id": "names-flow",
+          "text": "The response identifies grill-me as the selected flow without starting it."
+        }
+      ]
+    },
+    {
+      "id": 35,
+      "name": "route-grill-with-docs",
+      "prompt": "grill with docs. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "route",
+          "kind": "trace_exact",
+          "parts": [
+            "flow:grill-with-docs"
+          ]
+        }
+      ],
+      "rubric": [
+        {
+          "id": "names-flow",
+          "text": "The response identifies grill-with-docs as the selected flow without starting it."
+        }
+      ]
+    },
+    {
+      "id": 36,
+      "name": "route-grilling",
+      "prompt": "interview me. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "route",
+          "kind": "trace_exact",
+          "parts": [
+            "flow:grilling"
+          ]
+        }
+      ],
+      "rubric": [
+        {
+          "id": "names-flow",
+          "text": "The response identifies grilling as the selected flow without starting it."
+        }
+      ]
+    },
+    {
+      "id": 37,
+      "name": "route-handoff",
+      "prompt": "prepare a handoff. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "route",
+          "kind": "trace_exact",
+          "parts": [
+            "flow:handoff"
+          ]
+        }
+      ],
+      "rubric": [
+        {
+          "id": "names-flow",
+          "text": "The response identifies handoff as the selected flow without starting it."
+        }
+      ]
+    },
+    {
+      "id": 38,
+      "name": "route-implement",
+      "prompt": "implement the spec. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "route",
+          "kind": "trace_exact",
+          "parts": [
+            "flow:implement"
+          ]
+        }
+      ],
+      "rubric": [
+        {
+          "id": "names-flow",
+          "text": "The response identifies implement as the selected flow without starting it."
+        }
+      ]
+    },
+    {
+      "id": 39,
+      "name": "route-implement-spec",
+      "prompt": "implement-spec. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "route",
+          "kind": "trace_exact",
+          "parts": [
+            "flow:implement-spec"
+          ]
+        }
+      ],
+      "rubric": [
+        {
+          "id": "names-flow",
+          "text": "The response identifies implement-spec as the selected flow without starting it."
+        }
+      ]
+    },
+    {
+      "id": 40,
+      "name": "route-improve-codebase-architecture",
+      "prompt": "deepen the codebase architecture. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "route",
+          "kind": "trace_exact",
+          "parts": [
+            "flow:improve-codebase-architecture"
+          ]
+        }
+      ],
+      "rubric": [
+        {
+          "id": "names-flow",
+          "text": "The response identifies improve-codebase-architecture as the selected flow without starting it."
+        }
+      ]
+    },
+    {
+      "id": 41,
+      "name": "route-loop-me",
+      "prompt": "loop me. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "route",
+          "kind": "trace_exact",
+          "parts": [
+            "flow:loop-me"
+          ]
+        }
+      ],
+      "rubric": [
+        {
+          "id": "names-flow",
+          "text": "The response identifies loop-me as the selected flow without starting it."
+        }
+      ]
+    },
+    {
+      "id": 42,
+      "name": "route-pr",
+      "prompt": "open a PR. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "route",
+          "kind": "trace_exact",
+          "parts": [
+            "flow:pr"
+          ]
+        }
+      ],
+      "rubric": [
+        {
+          "id": "names-flow",
+          "text": "The response identifies pr as the selected flow without starting it."
+        }
+      ]
+    },
+    {
+      "id": 43,
+      "name": "route-prototype",
+      "prompt": "build a throwaway prototype. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "route",
+          "kind": "trace_exact",
+          "parts": [
+            "flow:prototype"
+          ]
+        }
+      ],
+      "rubric": [
+        {
+          "id": "names-flow",
+          "text": "The response identifies prototype as the selected flow without starting it."
+        }
+      ]
+    },
+    {
+      "id": 44,
+      "name": "route-qa",
+      "prompt": "QA this user path. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "route",
+          "kind": "trace_exact",
+          "parts": [
+            "flow:qa"
+          ]
+        }
+      ],
+      "rubric": [
+        {
+          "id": "names-flow",
+          "text": "The response identifies qa as the selected flow without starting it."
+        }
+      ]
+    },
+    {
+      "id": 45,
+      "name": "route-release",
+      "prompt": "cut a release. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "route",
+          "kind": "trace_exact",
+          "parts": [
+            "flow:release"
+          ]
+        }
+      ],
+      "rubric": [
+        {
+          "id": "names-flow",
+          "text": "The response identifies release as the selected flow without starting it."
+        }
+      ]
+    },
+    {
+      "id": 46,
+      "name": "route-research",
+      "prompt": "research this using primary sources. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "route",
+          "kind": "trace_exact",
+          "parts": [
+            "flow:research"
+          ]
+        }
+      ],
+      "rubric": [
+        {
+          "id": "names-flow",
+          "text": "The response identifies research as the selected flow without starting it."
+        }
+      ]
+    },
+    {
+      "id": 47,
+      "name": "route-resolving-merge-conflicts",
+      "prompt": "resolve this merge conflict. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "route",
+          "kind": "trace_exact",
+          "parts": [
+            "flow:resolving-merge-conflicts"
+          ]
+        }
+      ],
+      "rubric": [
+        {
+          "id": "names-flow",
+          "text": "The response identifies resolving-merge-conflicts as the selected flow without starting it."
+        }
+      ]
+    },
+    {
+      "id": 48,
+      "name": "route-setup-ts-deep-modules",
+      "prompt": "setup-ts-deep-modules. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "route",
+          "kind": "trace_exact",
+          "parts": [
+            "flow:setup-ts-deep-modules"
+          ]
+        }
+      ],
+      "rubric": [
+        {
+          "id": "names-flow",
+          "text": "The response identifies setup-ts-deep-modules as the selected flow without starting it."
+        }
+      ]
+    },
+    {
+      "id": 49,
+      "name": "route-tdd",
+      "prompt": "use test-first TDD. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "route",
+          "kind": "trace_exact",
+          "parts": [
+            "flow:tdd"
+          ]
+        }
+      ],
+      "rubric": [
+        {
+          "id": "names-flow",
+          "text": "The response identifies tdd as the selected flow without starting it."
+        }
+      ]
+    },
+    {
+      "id": 50,
+      "name": "route-teach",
+      "prompt": "teach me this concept. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "route",
+          "kind": "trace_exact",
+          "parts": [
+            "flow:teach"
+          ]
+        }
+      ],
+      "rubric": [
+        {
+          "id": "names-flow",
+          "text": "The response identifies teach as the selected flow without starting it."
+        }
+      ]
+    },
+    {
+      "id": 51,
+      "name": "route-to-questionnaire",
+      "prompt": "turn this into a questionnaire. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "route",
+          "kind": "trace_exact",
+          "parts": [
+            "flow:to-questionnaire"
+          ]
+        }
+      ],
+      "rubric": [
+        {
+          "id": "names-flow",
+          "text": "The response identifies to-questionnaire as the selected flow without starting it."
+        }
+      ]
+    },
+    {
+      "id": 52,
+      "name": "route-to-spec",
+      "prompt": "write a spec. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "route",
+          "kind": "trace_exact",
+          "parts": [
+            "flow:to-spec"
+          ]
+        }
+      ],
+      "rubric": [
+        {
+          "id": "names-flow",
+          "text": "The response identifies to-spec as the selected flow without starting it."
+        }
+      ]
+    },
+    {
+      "id": 53,
+      "name": "route-to-tickets",
+      "prompt": "break this into tickets. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "route",
+          "kind": "trace_exact",
+          "parts": [
+            "flow:to-tickets"
+          ]
+        }
+      ],
+      "rubric": [
+        {
+          "id": "names-flow",
+          "text": "The response identifies to-tickets as the selected flow without starting it."
+        }
+      ]
+    },
+    {
+      "id": 54,
+      "name": "route-tracker",
+      "prompt": "detect the issue tracker. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "route",
+          "kind": "trace_exact",
+          "parts": [
+            "flow:tracker"
+          ]
+        }
+      ],
+      "rubric": [
+        {
+          "id": "names-flow",
+          "text": "The response identifies tracker as the selected flow without starting it."
+        }
+      ]
+    },
+    {
+      "id": 55,
+      "name": "route-triage",
+      "prompt": "triage these issues. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "route",
+          "kind": "trace_exact",
+          "parts": [
+            "flow:triage"
+          ]
+        }
+      ],
+      "rubric": [
+        {
+          "id": "names-flow",
+          "text": "The response identifies triage as the selected flow without starting it."
+        }
+      ]
+    },
+    {
+      "id": 56,
+      "name": "route-wait-what",
+      "prompt": "wait what, re-pitch that. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "route",
+          "kind": "trace_exact",
+          "parts": [
+            "flow:wait-what"
+          ]
+        }
+      ],
+      "rubric": [
+        {
+          "id": "names-flow",
+          "text": "The response identifies wait-what as the selected flow without starting it."
+        }
+      ]
+    },
+    {
+      "id": 57,
+      "name": "route-wayfinder",
+      "prompt": "wayfinder this huge effort. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "route",
+          "kind": "trace_exact",
+          "parts": [
+            "flow:wayfinder"
+          ]
+        }
+      ],
+      "rubric": [
+        {
+          "id": "names-flow",
+          "text": "The response identifies wayfinder as the selected flow without starting it."
+        }
+      ]
+    },
+    {
+      "id": 58,
+      "name": "route-wizard",
+      "prompt": "make a wizard for provisioning secrets. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "route",
+          "kind": "trace_exact",
+          "parts": [
+            "flow:wizard"
+          ]
+        }
+      ],
+      "rubric": [
+        {
+          "id": "names-flow",
+          "text": "The response identifies wizard as the selected flow without starting it."
+        }
+      ]
+    },
+    {
+      "id": 59,
+      "name": "route-writing-beats",
+      "prompt": "shape these writing beats. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "route",
+          "kind": "trace_exact",
+          "parts": [
+            "flow:writing-beats"
+          ]
+        }
+      ],
+      "rubric": [
+        {
+          "id": "names-flow",
+          "text": "The response identifies writing-beats as the selected flow without starting it."
+        }
+      ]
+    },
+    {
+      "id": 60,
+      "name": "route-writing-for-agents",
+      "prompt": "write skill docs for agents. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "route",
+          "kind": "trace_exact",
+          "parts": [
+            "flow:writing-for-agents"
+          ]
+        }
+      ],
+      "rubric": [
+        {
+          "id": "names-flow",
+          "text": "The response identifies writing-for-agents as the selected flow without starting it."
+        }
+      ]
+    },
+    {
+      "id": 61,
+      "name": "route-writing-fragments",
+      "prompt": "mine these writing fragments. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "route",
+          "kind": "trace_exact",
+          "parts": [
+            "flow:writing-fragments"
+          ]
+        }
+      ],
+      "rubric": [
+        {
+          "id": "names-flow",
+          "text": "The response identifies writing-fragments as the selected flow without starting it."
+        }
+      ]
+    },
+    {
+      "id": 62,
+      "name": "route-writing-shape",
+      "prompt": "turn these notes into writing shape. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "route",
+          "kind": "trace_exact",
+          "parts": [
+            "flow:writing-shape"
+          ]
+        }
+      ],
+      "rubric": [
+        {
+          "id": "names-flow",
+          "text": "The response identifies writing-shape as the selected flow without starting it."
+        }
+      ]
+    },
+    {
+      "name": "review-keeps-complete-findings",
+      "prompt": "Review src/add.ts and report every actionable finding. Do not modify files.",
+      "files": [
+        "evals/files/no-matt-docs/src/add.ts"
+      ],
+      "critical": true,
+      "checks": [],
+      "rubric": [
+        {
+          "id": "complete-review",
+          "text": "The response is not truncated to an arbitrary three-line limit."
+        },
+        {
+          "id": "no-mutation",
+          "text": "The final workspace diff is empty."
+        }
+      ],
+      "id": 63
+    },
+    {
+      "name": "stateful-call-preserves-evaluation",
+      "prompt": "Clean up counter.py without changing behavior. The next_value call is stateful.",
+      "files": [
+        "evals/files/stateful-call/counter.py"
+      ],
+      "critical": true,
+      "checks": [],
+      "rubric": [
+        {
+          "id": "keeps-two-calls",
+          "text": "The cleanup preserves two evaluations of next_value rather than binding one result."
+        }
+      ],
+      "id": 64
+    },
+    {
+      "name": "rls-default-deny-guidance",
+      "prompt": "Harden this PostgreSQL design: RLS is enabled but the table has no policies. Explain the effective access and owner exceptions. Do not modify files.",
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "route",
+          "kind": "trace_exact",
+          "parts": [
+            "job:secure",
+            "load:sql",
+            "load:postgres",
+            "load:trust"
+          ]
+        }
+      ],
+      "rubric": [
+        {
+          "id": "default-deny",
+          "text": "States that enabled RLS with no applicable policy is default-deny."
+        },
+        {
+          "id": "owner-exceptions",
+          "text": "Mentions table-owner or BYPASSRLS bypass and FORCE ROW LEVEL SECURITY."
+        }
+      ],
+      "id": 65
+    },
+    {
+      "name": "webhook-durable-acceptance",
+      "prompt": "Harden a webhook endpoint. Give the safe processing order and keep slow work outside the request.",
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "route",
+          "kind": "trace_exact",
+          "parts": [
+            "job:secure",
+            "load:trust"
+          ]
+        }
+      ],
+      "rubric": [
+        {
+          "id": "durable-before-ack",
+          "text": "Requires verification and durable dedupe/store/enqueue before returning success."
+        },
+        {
+          "id": "async-idempotent",
+          "text": "Moves slow work async and makes processing idempotent by event id."
+        }
+      ],
+      "id": 66
+    },
+    {
+      "name": "provider-controls-are-capability-gated",
+      "prompt": "Explain how to cross a context boundary on an unknown agent host. Do not assume a vendor command exists.",
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "no-clear-command",
+          "kind": "response_not_contains",
+          "pattern": "`/(?:clear|compact)(?:\\\\s|`)"
+        }
+      ],
+      "rubric": [
+        {
+          "id": "capability-gate",
+          "text": "Describes host-native fresh-context, compaction, or handoff options without inventing support."
+        }
+      ],
+      "id": 67
+    },
+    {
+      "id": 68,
+      "name": "inactive-general-question",
+      "prompt": "What is two plus two? Answer only the question.",
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "no-trace",
+          "kind": "trace_absent"
+        },
+        {
+          "id": "answer",
+          "kind": "response_contains",
+          "pattern": "(?i)(?:\\b4\\b|\\bfour\\b)"
+        },
+        {
+          "id": "no-web",
+          "kind": "tool_absent",
+          "tool": "web"
+        }
+      ],
+      "rubric": []
     }
   ]
 }

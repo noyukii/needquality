@@ -14,7 +14,8 @@ from *that* diff. Behavior stays unless the slop is a clear bug.
   `if cond: return True` / `else: return False`
 - Unused imports and unused bindings, leftover instrumentation,
   invented helpers, extra markdown, drive-by formatting
-- Same call twice in one function; `hasattr` / `?.` of a method
+- Repeated pure call that can be bound without changing evaluation;
+  `hasattr` / `?.` of a method
   the tree does not have
 - Anything else that does not match this file's indent, imports,
   naming, or error pattern

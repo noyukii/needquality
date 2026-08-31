@@ -1,80 +1,182 @@
 #!/usr/bin/env python3
-"""Validate the installable skill shape. Stdlib only."""
+"""Validate the NeedQuality source and installable skill shape. Stdlib only."""
 
 from __future__ import annotations
 
+import argparse
 import csv
 import json
 import re
 import sys
+from collections import defaultdict, deque
 from pathlib import Path
 
+from eval_schema import load_evals, validate_baseline, validate_evals
+
 ROOT = Path(__file__).resolve().parent.parent
-LINK_RE = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
-TRACE_LABEL_RE = re.compile(r"^(?:job|flow|load):[a-z0-9-]+$")
-RESEARCH_PATH = ROOT / "references" / "flows" / "research" / "SKILL.md"
+LINK_RE = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
+TABLE_LINK_RE = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
+RESEARCH_PATH = ROOT / "references" / "flows" / "research.md"
 
 
-def frontmatter(text: str) -> dict[str, str]:
+def frontmatter(text: str) -> tuple[dict[str, str], list[str]]:
     if not text.startswith("---\n"):
-        return {}
-    _, body, _ = text.split("---\n", 2)
+        return {}, []
+    try:
+        _, body, _ = text.split("---\n", 2)
+    except ValueError:
+        return {}, ["unclosed YAML frontmatter"]
     fields: dict[str, str] = {}
+    errors: list[str] = []
     lines = body.splitlines()
-    for index, line in enumerate(lines):
-        if ":" not in line:
+    index = 0
+    while index < len(lines):
+        line = lines[index]
+        if not line.strip():
+            index += 1
+            continue
+        if line.startswith((" ", "\t")) or ":" not in line:
+            errors.append(f"invalid frontmatter line: {line!r}")
+            index += 1
             continue
         key, value = line.split(":", 1)
-        key = key.strip()
-        value = value.strip()
-        if key == "description" and value in {">", "|"}:
-            folded: list[str] = []
-            for continuation in lines[index + 1 :]:
-                if not continuation.startswith("  "):
-                    break
-                folded.append(continuation.strip())
-            value = " ".join(folded) if value == ">" else "\n".join(folded)
-        fields.setdefault(key, value)
-    return fields
+        key, value = key.strip(), value.strip()
+        if key in fields:
+            errors.append(f"duplicate frontmatter key: {key}")
+        if value in {">", "|"}:
+            continuation: list[str] = []
+            index += 1
+            while index < len(lines) and lines[index].startswith("  "):
+                continuation.append(lines[index].strip())
+                index += 1
+            value = " ".join(continuation) if value == ">" else "\n".join(continuation)
+        else:
+            index += 1
+        fields[key] = value.strip('"\'')
+    return fields, errors
+
+
+def local_target(source: Path, target: str) -> Path | None:
+    clean = target.split("#", 1)[0]
+    if not clean or "://" in clean or clean.startswith(("mailto:", "/")):
+        return None
+    if clean == "link" or clean.startswith("./src/"):
+        return None
+    return (source.parent / clean).resolve(strict=False)
 
 
 def validate_docs(errors: list[str]) -> int:
-    docs = [ROOT / "SKILL.md", *sorted((ROOT / "references").rglob("*.md"))]
+    root_skill = ROOT / "SKILL.md"
+    references = sorted((ROOT / "references").rglob("*.md"))
+    docs = [root_skill, *references]
+    root_resolved = ROOT.resolve()
+    graph: dict[Path, set[Path]] = defaultdict(set)
+
+    skill_files = sorted(
+        path for path in ROOT.rglob("SKILL.md") if ".git" not in path.parts
+    )
+    if skill_files != [root_skill]:
+        shown = ", ".join(str(path.relative_to(ROOT)) for path in skill_files)
+        errors.append(f"discovery: expected only root SKILL.md, found {shown}")
+
     for path in docs:
         text = path.read_text(encoding="utf-8")
         for target in LINK_RE.findall(text):
-            target = target.split("#", 1)[0]
-            if not target or "://" in target or target.startswith("mailto:"):
+            resolved = local_target(path, target)
+            if resolved is None:
                 continue
-            if target == "link" or target.startswith("./src/"):
-                continue
-            resolved = (path.parent / target).resolve()
             try:
-                resolved.relative_to(ROOT.resolve())
+                resolved.relative_to(root_resolved)
             except ValueError:
                 errors.append(f"{path.relative_to(ROOT)}: link escapes skill: {target}")
                 continue
             if not resolved.exists():
                 errors.append(f"{path.relative_to(ROOT)}: missing link: {target}")
-    skill = ROOT / "SKILL.md"
-    fields = frontmatter(skill.read_text(encoding="utf-8"))
+                continue
+            if resolved.suffix == ".md":
+                graph[path.resolve()].add(resolved)
+
+    reachable: set[Path] = set()
+    queue = deque([root_skill.resolve()])
+    while queue:
+        path = queue.popleft()
+        if path in reachable:
+            continue
+        reachable.add(path)
+        queue.extend(graph[path] - reachable)
+    for path in references:
+        if path.resolve() not in reachable:
+            errors.append(f"references: unreachable from SKILL.md: {path.relative_to(ROOT)}")
+
+    fields, metadata_errors = frontmatter(root_skill.read_text(encoding="utf-8"))
+    errors.extend(f"SKILL.md: {error}" for error in metadata_errors)
+    if set(fields) != {"name", "description"}:
+        errors.append("SKILL.md: frontmatter keys must be exactly name and description")
     if fields.get("name") != ROOT.name:
         errors.append(f"SKILL.md: name must be {ROOT.name!r}")
     if not fields.get("description"):
         errors.append("SKILL.md: missing description")
-    if len(skill.read_text(encoding="utf-8").splitlines()) > 500:
+    if len(root_skill.read_text(encoding="utf-8").splitlines()) > 500:
         errors.append("SKILL.md: over 500 lines")
     if len(fields.get("description", "")) > 1024:
         errors.append("SKILL.md: description over 1024 characters")
     return len(docs)
 
 
+def words_rows() -> list[tuple[str, str]]:
+    text = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+    section = text.split("## Words", 1)[1].split("## Load", 1)[0]
+    rows: list[tuple[str, str]] = []
+    for line in section.splitlines():
+        if not line.startswith("|") or line.startswith(("|---", "| They say")):
+            continue
+        cells = [cell.strip() for cell in line.strip("|").split("|")]
+        if len(cells) != 3:
+            continue
+        links = TABLE_LINK_RE.findall(cells[2])
+        rows.append((cells[0], links[0] if links else ""))
+    return rows
+
+
+def validate_routes(errors: list[str]) -> tuple[int, int]:
+    rows = words_rows()
+    phrases: dict[str, str] = {}
+    targets: dict[str, list[str]] = defaultdict(list)
+    for phrase_cell, target in rows:
+        for phrase in phrase_cell.split(","):
+            normalized = re.sub(r"[`*]", "", phrase).strip().lower()
+            if not normalized:
+                continue
+            if normalized in phrases:
+                errors.append(
+                    f"routes: duplicate phrase {normalized!r} in {phrases[normalized]!r} and {phrase_cell!r}"
+                )
+            phrases[normalized] = phrase_cell
+        if target:
+            targets[target].append(phrase_cell)
+
+    expected_jobs = {
+        path.relative_to(ROOT).as_posix() for path in (ROOT / "references" / "jobs").glob("*.md")
+    }
+    expected_flows = {
+        path.relative_to(ROOT).as_posix() for path in (ROOT / "references" / "flows").glob("*.md")
+    }
+    actual = {
+        (ROOT / target).resolve().relative_to(ROOT.resolve()).as_posix()
+        for target in targets
+    }
+    for target in sorted(expected_jobs | expected_flows):
+        if target not in actual:
+            errors.append(f"routes: missing Words row for {target}")
+    for target, owners in targets.items():
+        if len(owners) > 1:
+            errors.append(f"routes: target {target} is owned by multiple rows: {owners}")
+    return len(expected_jobs), len(expected_flows)
+
+
 def validate_research(errors: list[str]) -> None:
-    skill_text = (ROOT / "SKILL.md").read_text(encoding="utf-8")
-    if "(references/flows/research/SKILL.md)" not in skill_text:
-        errors.append("SKILL.md: missing research reference pointer")
     if not RESEARCH_PATH.is_file():
-        errors.append("research: missing references/flows/research/SKILL.md")
+        errors.append("research: missing references/flows/research.md")
         return
     text = RESEARCH_PATH.read_text(encoding="utf-8")
     required = {
@@ -104,70 +206,70 @@ def validate_tells(errors: list[str]) -> int:
     ids = [row.get("id", "") for row in rows]
     if len(ids) != len(set(ids)):
         errors.append("data/tells.csv: duplicate id")
-    if any(not all(row.get(k, "").strip() for k in required) for row in rows):
+    if any(not all(row.get(key, "").strip() for key in required) for row in rows):
         errors.append("data/tells.csv: blank field")
     return len(rows)
 
 
-def validate_evals(errors: list[str]) -> int:
-    path = ROOT / "evals" / "evals.json"
-    data = json.loads(path.read_text(encoding="utf-8"))
-    cases = data.get("evals", [])
-    ids: list[int] = []
-    for case in cases:
-        cid = case.get("id")
-        ids.append(cid)
-        if not case.get("prompt") or not case.get("expectations"):
-            errors.append(f"eval {cid}: prompt and expectations required")
-        if "trace" in case:
-            trace = case["trace"]
-            if not isinstance(trace, dict):
-                errors.append(f"eval {cid}: trace must be an object")
-            else:
-                mode = trace.get("mode", "exact")
-                if mode not in {"exact", "absent"}:
-                    errors.append(f"eval {cid}: trace mode must be exact or absent")
-                elif mode == "absent":
-                    if set(trace) != {"mode"}:
-                        errors.append(f"eval {cid}: absent trace cannot include parts")
-                else:
-                    parts = trace.get("parts")
-                    if not isinstance(parts, list) or not parts:
-                        errors.append(f"eval {cid}: exact trace needs non-empty parts")
-                    elif not all(isinstance(part, str) and TRACE_LABEL_RE.fullmatch(part) for part in parts):
-                        errors.append(f"eval {cid}: trace parts must use canonical labels")
-                    elif len(parts) != len(set(parts)):
-                        errors.append(f"eval {cid}: trace parts must be unique")
-        for rel in case.get("files", []):
-            path = Path(rel) if isinstance(rel, str) else Path()
-            if (
-                not isinstance(rel, str)
-                or path.is_absolute()
-                or path.parts[:2] != ("evals", "files")
-                or ".." in path.parts
-            ):
-                errors.append(f"eval {cid}: fixture is outside evals/files {rel!r}")
-                continue
-            fixture = ROOT / path
-            if not fixture.is_file():
-                errors.append(f"eval {cid}: missing fixture {rel}")
-    if len(ids) != len(set(ids)):
-        errors.append("evals/evals.json: duplicate id")
-    return len(cases)
+def validate_metadata(errors: list[str]) -> None:
+    path = ROOT / "agents" / "openai.yaml"
+    required = {
+        'display_name: "NeedQuality"',
+        'short_description: "Route software work to focused quality guidance"',
+        'default_prompt: "Use $needquality to route this task and apply the smallest reliable workflow."',
+        "allow_implicit_invocation: true",
+    }
+    if not path.is_file():
+        errors.append("agents/openai.yaml: missing")
+        return
+    text = path.read_text(encoding="utf-8")
+    for marker in required:
+        if marker not in text:
+            errors.append(f"agents/openai.yaml: missing {marker}")
+
+
+def validate_legacy_manifest(errors: list[str]) -> None:
+    path = ROOT / "data" / "legacy-v1-manifest.json"
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        errors.append(f"legacy manifest: {error}")
+        return
+    files = payload.get("files") if isinstance(payload, dict) else None
+    if payload.get("format") != 1 or not isinstance(files, dict) or not files:
+        errors.append("legacy manifest: expected format 1 with files")
+    elif not any(rel.endswith("/SKILL.md") for rel in files):
+        errors.append("legacy manifest: missing nested flow entrypoints")
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description="Validate NeedQuality")
+    parser.add_argument("--stats", action="store_true", help="print inventory as JSON")
+    args = parser.parse_args()
     errors: list[str] = []
     docs = validate_docs(errors)
+    jobs, flows = validate_routes(errors)
     validate_research(errors)
     tells = validate_tells(errors)
-    evals = validate_evals(errors)
+    validate_metadata(errors)
+    validate_legacy_manifest(errors)
+    eval_data = load_evals(ROOT / "evals" / "evals.json")
+    errors.extend(validate_evals(eval_data, ROOT))
+    errors.extend(validate_baseline(ROOT))
+    evals = len(eval_data.get("evals", []))
     if errors:
         print("invalid needquality:", file=sys.stderr)
         for error in errors:
             print(f"  {error}", file=sys.stderr)
         return 1
-    print(f"valid: {docs} docs, {tells} tells, {evals} evals")
+    stats = {"docs": docs, "jobs": jobs, "flows": flows, "tells": tells, "evals": evals}
+    if args.stats:
+        print(json.dumps(stats, sort_keys=True))
+    else:
+        print(
+            f"valid: {docs} docs, {jobs} jobs, {flows} flows, "
+            f"{tells} tells, {evals} evals"
+        )
     return 0
 
 

@@ -65,7 +65,9 @@ write to the DB.
 No `dbg!` / `println!` in library code. No unused imports (`cargo check`
 will tell you; do not leave `#[allow(dead_code)]` to quiet a stub).
 A used name is in scope. Don't wrap a boolean. Else after `return`
-is noise. Same expression twice in one function → bind.
+is noise. Bind a repeated expression only when one evaluation preserves
+mutation, timing, errors, and observed state; leave intentionally repeated or
+stateful calls alone.
 `todo!()` / `unimplemented!()` is not the function. No
 hardcoded secrets. Never `.danger_accept_invalid_certs(true)` on a
 `reqwest::Client`. Never `base.join(user_filename)` into `File::open`

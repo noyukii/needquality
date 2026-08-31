@@ -78,7 +78,7 @@ ghost-api,agent,hasattr / ?. of a method the tree or type does not have,call the
 missing-import,agent,used symbol with no import / undefined name,import or assign in this patch
 unused-bind,agent,assigned never read / leftover import,delete the binding
 bool-wrap,agent,if cond return True else return False,return the condition
-redo-call,agent,same expression twice in one function,bind once
+redo-call,agent,repeated pure expression with identical semantics,bind once only when evaluation timing and state are preserved
 shadow-builtin,py,local named dict / list / id / type,pick a name that is not the builtin
 else-after-return,agent,else after return or break,drop the else; early return
 hook-no-error,react,"hook returns { data, refetch } with no error",expose error; loading is not fail

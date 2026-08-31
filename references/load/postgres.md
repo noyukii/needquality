@@ -19,10 +19,13 @@ or say you didn't. Don't invent an index religion.
 
 ## RLS
 
-A policy must constrain. `USING (true)` / `WITH CHECK (true)`
-is open. Tenant and owner come from `auth.uid()` or the
-session — not a client-supplied id. trust.md already flags
-open RLS; this file is the Postgres tell.
+An applicable policy normally constrains rows. `USING (true)` /
+`WITH CHECK (true)` intentionally grants broad access for the policy's
+commands and roles; it is not the same as having no applicable policy.
+With RLS enabled, no applicable policy means default-deny. Table owners
+normally bypass RLS unless `FORCE ROW LEVEL SECURITY` applies, and roles
+with `BYPASSRLS` bypass it. Tenant and owner come from `auth.uid()` or
+the session — not a client-supplied id. See [trust.md](trust.md#row-level-security-postgres).
 
 ## Locks
 
