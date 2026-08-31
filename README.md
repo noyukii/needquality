@@ -1,5 +1,5 @@
 <div align="center">
-  <h1>needquality</h1>
+  <img src="assets/needquality.png" alt="needquality" width="780">
 </div>
 
 <p align="center">
