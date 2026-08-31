@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fingerprint lookup for a noslop cleanup pass. Stdlib only.
+"""Fingerprint lookup for a needquality cleanup pass. Stdlib only.
 
   python scripts/lookup.py --ext .py
   python scripts/lookup.py --domain sql
@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import json
 import sys
 from pathlib import Path
 
@@ -60,12 +61,15 @@ def match(
 
 
 def main() -> int:
-    p = argparse.ArgumentParser(description="Noslop tell lookup")
+    p = argparse.ArgumentParser(description="NeedQuality tell lookup")
     p.add_argument("query", nargs="?", help="substring over id/tell/fix")
     p.add_argument("--domain", "-d", help="ui copy ts js react py go rs sql trust test")
     p.add_argument("--ext", "-e", help="file extension, e.g. .tsx")
     p.add_argument("--limit", "-n", type=int, default=20)
+    p.add_argument("--json", action="store_true", help="emit matching rows as JSON")
     args = p.parse_args()
+    if args.limit < 1:
+        p.error("--limit must be at least 1")
     domain = args.domain
     domains: tuple[str, ...] | None = (domain,) if domain else None
     if args.ext:
@@ -76,6 +80,9 @@ def main() -> int:
             return 2
         domains = mapped if domains is None else tuple(dict.fromkeys((*domains, *mapped)))
     hits = [r for r in rows() if match(r, domains=domains, query=args.query)]
+    if args.json:
+        print(json.dumps(hits[: args.limit], ensure_ascii=False, indent=2))
+        return 0
     if not hits:
         print("no matches")
         return 0

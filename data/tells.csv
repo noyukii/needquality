@@ -47,6 +47,7 @@ starter-layout,agent,invented internal/pkg/cmd/utils/controllers-services tree,f
 yagni-carry,agent,unused field/config/flag for later,delete; add when a caller exists
 entangled-split,agent,two functions that must be read together to understand one,combine them
 invented-kit,ui,useState+absolute Popover next to the kit,import the kit primitive
+web-template-bypass,ui,new web page/docs site/component/library built from blank files while a repo or official baseline exists,use repo pattern first; then official starter/theme; custom only when requested or needed
 inter-indigo,ui,Inter indigo three cards on a new surface,match the repo or uniqueness.md
 new-slop-sheet,ui,muted paper canvas hairline rules earth rectangle button fact rows boxed form,skip as first idea on persuade; keep for spec/datasheet
 doc-column,ui,centered stack all left matte field vertical rail identity facts form,skip as first idea on persuade; correct for read/docs
@@ -69,5 +70,28 @@ z-index,ui,z-[9999] / z-index 9999 / min-h-screen / overflow-x-hidden / !importa
 outline-none,ui,outline-none with no focus-visible; div onClick; placeholder-only label,<label> <button>/<a> :focus-visible
 app-kpis,ui,four KPI cards + fake Recharts + Welcome back hero in an app,one real number or skip; title of the task
 plex-mono,ui,"IBM Plex Mono / JetBrains Mono / Geist Mono / Fira Code as UI",mono for code; display+body from the subject
-dot-arrow,ui,"inline · or trailing → as chrome","match the file; comma, list, kit icon, or the verb"
+dot-arrow,ui,"inline · or trailing → as chrome","· : comma or list; mark: kit icon or inline SVG; verb has no glyph"
 mono-table,ui,dark all-caps mono table hairline acid-green selected row,kit Table; headers match the file; selection from existing accent
+stub-logic,agent,pass / return args / hardcoded sample instead of the function,implement the named contract
+half-spec,agent,else/fallback skips the named check or existing helper,same check on every path
+ghost-api,agent,hasattr / ?. of a method the tree or type does not have,call the real API or implement it
+missing-import,agent,used symbol with no import / undefined name,import or assign in this patch
+unused-bind,agent,assigned never read / leftover import,delete the binding
+bool-wrap,agent,if cond return True else return False,return the condition
+redo-call,agent,same expression twice in one function,bind once
+shadow-builtin,py,local named dict / list / id / type,pick a name that is not the builtin
+else-after-return,agent,else after return or break,drop the else; early return
+hook-no-error,react,"hook returns { data, refetch } with no error",expose error; loading is not fail
+tree-beats-builtin,agent,stdlib/builtin that duplicates a named helper in the tree,import the helper
+over-edit,agent,rewrite/rename/extra validation/new helper on a one-line fix,patch the failing line only
+sibling-drift,agent,new route/handler omits sibling guard parse timeout or error shape,copy the nearest sibling
+patchwork-env,trust,os.environ / process.env key not in .env.example,declare it or don't read it
+patchwork-resource,agent,open/import a file or template that is not in the tree,use a path that exists
+contract-change,agent,refactor changes return throw or default of a public function,same contract; behavior change is a different diff
+lang-mix,agent,emit another language into this file,language of this file
+field-alias,agent,user_name next to existing username / invent a response field,match the schema already in the tree
+voice-flatten,copy,rewriting a specific voice into median blog prose,preserve nouns cadence contractions and point of view; ask for a sample if voice is unknown
+unsourced-claim,copy,"research shows" / fake study / invented metric,name source date and link; remove claim when it cannot be supported
+reference-ignored,ui,brief or reference image replaced by a generic beautiful layout,copy the named constraint and primary action before inventing
+screenshot-claim,agent,screenshot or first paint described as working,click type or submit the named path; otherwise say not verified
+narrow-green,agent,green suite with no named path or composed case,run the changed path and a composing or held-out check; report counts only

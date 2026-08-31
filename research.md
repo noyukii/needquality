@@ -1248,6 +1248,131 @@ Boundaries + “I/O at the shell.” Developer index was mostly
 CLAUDE.md clones and YAGNI restatements — Fowler’s bliki is the
 hit.
 
+## Round: model style / quality issues (2026-08-30)
+
+Source: Firecrawl search
+`most code style / quality issues new models have`
+(Downloads JSON + [arxiv:2503.06327](https://arxiv.org/html/2503.06327)
+taxonomy, [arxiv:2407.00456](https://arxiv.org/html/2407.00456v1)
+style inconsistencies). Developer-index and news hits were
+Laravel/god-class/Pylint ceremony or already in trust.md.
+
+### Already in Noslop (do not re-fold)
+
+Swallowed except, invented success, `as any`, parse-at-boundary,
+hardcoded secrets, path join, N+1, unused imports, restating
+comments, copy-twice/extract-third, match-this-file format,
+stdlib-after-tree ladder, types-green ≠ user path, defensive
+checks on trusted inner paths (models *over*-validate; cleanup
+already strips that).
+
+### Folded (gaps only)
+
+From the 19-subcategory taxonomy + top style miss (API usage
+= builtin instead of the named helper):
+
+| Tell | Where |
+|---|---|
+| Builtin that duplicates a named helper | SKILL ladder 2 |
+| `pass` / return-args / hardcoded sample | SKILL, fix.md |
+| else/fallback skips the named check | SKILL |
+| used name not imported; ghost `hasattr`/`?.` | SKILL, ts/js |
+| else after return; bool wrap; same call twice | SKILL, langs |
+| stub that types-checks is not the path | Done |
+| unused bindings; commented-out code | cleanup, leftovers |
+| hook `{data, refetch}` with no error | react.md |
+| emit field/method the type does not have | typescript.md |
+| shadow `dict`/`list`/`id`/`type` | python.md |
+
+### Don't fold
+
+O(n²)→O(n log n) or list→generator as a default (optimize.md:
+named bottleneck only). God-class extraction, magic numbers,
+blank-line religion, hexagonal lint, Laravel Form Request as
+universal, PhysicsNeMo docstring rules, Pylint score theater.
+Self-repair introducing *new* files of issues: fix.md already
+forbids "also fixed"; added "breaks another path in the same
+function."
+
+## Round: model style / quality issues, search 2 (2026-08-30)
+
+Source: Firecrawl search same query, larger result set
+(`…22_10_18.461Z.json`: 80 web, 100 papers). Most hits
+repeat the first search or are generic style/PEP 8.
+
+### New, testable
+
+| Source | Tell | Fold |
+|---|---|---|
+| [nrehiew, Over-Editing](https://nrehiew.github.io/blog/minimal_editing/) | One-line bug, half the function rewritten; extra None checks, helpers, renames; tests still pass | SKILL, fix.md, `over-edit` |
+| [Patchwork Problem](https://arxiv.org/html/2607.08981) | Locally-green patch: undeclared env, hallucinated dep, missing sibling auth, invented schema field, file that isn't there | SKILL, trust.md, tells |
+| [Nimbalyst 5 patterns](https://nimbalyst.com/blog/bugs-ai-writes-patterns-in-ai-generated-code/) | Sibling copy-paste drift; refactor changes return/throw/default | sibling-drift, contract-change, refactor.md |
+| [PLC](https://arxiv.org/html/2503.13620) | Code in the wrong language | `lang-mix` |
+| [2406.08731](https://arxiv.org/html/2406.08731v1) | Missing/incorrect condition or code block | already half-spec / stub-logic |
+| [2407.06153](https://arxiv.org/html/2407.06153v1) | Fewer lines, higher complexity | already named intermediates |
+| [Codex #9372](https://github.com/openai/codex/issues/9372) | Compact unreadable / wants more comments | do **not** fold “add comments”; named intermediates already |
+
+### Already in / don't fold
+
+Hallucinated package, sibling `requireAuth`, `.env.example`,
+tautological tests, happy-path-only, `as any`, secrets, path
+join. SWE-bench-pass ≠ mergeable is over-edit. Codex “20%
+comments” fights this skill.
+
+## Deep Research follow-up: intent, degradation, and proof (2026-08-31)
+
+The companion corpus [research-ai-want-hate.md](../research-ai-want-hate.md)
+contains 286 deliberately phrased want/hate queries and 1,413 capped
+search hits. It is useful for discovery and vocabulary, not prevalence:
+the list is hate-heavy, ranking is biased, and repeated URLs are not
+independent observations.
+
+Targeted primary/authoritative follow-up:
+
+- [METR's randomized developer study](https://metr.org/blog/2025-07-10-early-2025-ai-experienced-os-dev-study/?stream=top)
+  measured realistic repository work and found a 19% slowdown for its
+  early-2025 setting. METR separates that result from benchmark scores
+  and anecdotes. Rule: measure the named task and do not generalize a
+  local green check into productivity.
+- [SlopCodeBench](https://arxiv.org/abs/2603.24755) evaluates repeated
+  extensions and reports structural erosion in 77% of trajectories and
+  verbosity in 75.5%; guidance improved initial quality but did not stop
+  degradation. Rule: re-read and strip after extensions; add iterative
+  evals, not only one-shot pass rates.
+- [SpecBench](https://arxiv.org/abs/2605.21384) separates visible tests
+  from held-out composition tests to measure reward hacking. Rule: a
+  named test total is not proof of the composed user path.
+- [NN/G's vague-prompt study](https://www.nngroup.com/articles/vague-prototyping/)
+  found broad prompts produced repetition and weak hierarchy;
+  [its real-context evaluation](https://www.nngroup.com/articles/ai-prototyping/)
+  found specific requirements improved prototypes. Rule: name the UI
+  job, hierarchy, states, references, and constraints before CSS.
+- [Usable but Conventional](https://arxiv.org/abs/2605.15124) found
+  positive pragmatic UX but neutral/negative originality and innovation
+  ratings in a 92-person prototype study. Rule: check usability and
+  originality separately; do not replace a product direction with a
+  default centroid.
+- [Everyone prefers human writers, including AI](https://arxiv.org/abs/2510.08831)
+  found authorship labels changed literary evaluations in controlled
+  experiments with 556 people and 13 AI evaluators. Rule: preserve voice
+  and judge claim, fit, and evidence directly; do not use detectors as a
+  humanization oracle.
+- [WCAG 2.2](https://www.w3.org/TR/WCAG22/) supports the existing
+  contrast, focus, and target-size rules. [React's guidance](https://react.dev/learn/synchronizing-with-effects)
+  supports deriving values during render and reserving Effects for
+  synchronization with external systems.
+
+### Resulting improvements
+
+Keep the existing minimal-diff, local-style, boundary-error, and
+anti-centroid rules. Sharpen them with a short ordered Run contract in
+`SKILL.md`, explicit `VERIFIED | NOT VERIFIED | INCONCLUSIVE` closeout,
+voice/source rules in `copy.md`, reference-first UI constraints in
+`ui.md`, composed-path language in test/QA guidance, Swift/Vue/Docker
+loads, focused job routes, and `scripts/validate.py` plus stricter eval
+result validation. Avoid a larger universal blacklist: the evidence
+supports gates, artifacts, and feedback loops more strongly than more
+prompt prose.
 
 
 

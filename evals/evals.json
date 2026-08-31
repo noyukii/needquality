@@ -1,5 +1,5 @@
 {
-  "skill_name": "noslop",
+  "skill_name": "needquality",
   "evals": [
     {
       "id": 1,
@@ -173,6 +173,178 @@
         "Reuses delete_for (or equivalent scoped delete) so another owner's item fails",
         "Missing or other-owner id is a failure the caller can observe (HTTPException or raise), not a 200 with {error}",
         "No extra router/service file"
+      ]
+    },
+    {
+      "id": 13,
+      "prompt": "In src/add.ts, add a multiply function that returns a times b. Use the existing file. Don't add a framework.",
+      "expected_output": "multiply lives in add.ts next to add; no CONTEXT.md, docs/adr, or .scratch.",
+      "files": ["evals/files/no-matt-docs/src/add.ts"],
+      "expectations": [
+        "multiply exists and returns the product of two numbers",
+        "Lives in add.ts — no new util file",
+        "CONTEXT.md is absent (skill-side-effects says CONTEXT.md: absent)",
+        "docs/adr is absent (skill-side-effects says docs/adr: absent)",
+        ".scratch is absent (skill-side-effects says .scratch: absent)"
+      ]
+    },
+    {
+      "id": 14,
+      "prompt": "In Hero.tsx, make the Continue button a directional next-step CTA. Use what is already in the file. Don't add a library.",
+      "expected_output": "Continue keeps its label and gains a directional lucide-react icon (ArrowRight or similar). No unicode arrow. No second icon package.",
+      "files": ["evals/files/cta-icon/Hero.tsx"],
+      "expectations": [
+        "Imports a directional icon from lucide-react (ArrowRight, ChevronRight, ArrowUpRight, MoveRight, or similar)",
+        "The Continue button (or equivalent next-step control) renders that icon as a child",
+        "Button or link text does not contain → ↗ ▸ › »",
+        "Does not import from @heroicons, @tabler, react-icons, or a second icon package",
+        "No extra util file or new component file"
+      ]
+    },
+    {
+      "id": 15,
+      "prompt": "In this existing MkDocs repository, add an informational callout to docs/index.md. Do not add a CSS framework.",
+      "expected_output": "Extends the existing MkDocs/Material baseline and stylesheet; does not build a standalone theme or add unrelated dependencies.",
+      "files": [
+        "evals/files/mkdocs-template/mkdocs.yml",
+        "evals/files/mkdocs-template/docs/index.md",
+        "evals/files/mkdocs-template/docs/stylesheets/extra.css"
+      ],
+      "expectations": [
+        "Keeps theme.name: material in mkdocs.yml",
+        "Uses the existing docs/stylesheets/extra.css or existing Material configuration for the callout",
+        "Adds the requested informational callout to docs/index.md",
+        "Does not create a standalone custom theme with a new main.html/base.html or theme directory",
+        "Does not add a CSS framework or unrelated package",
+        "Callout remains readable and does not rely on color alone for meaning"
+      ]
+    },
+    {
+      "id": 16,
+      "prompt": "Add a dismissible informational Notice component to this React component library. Do not add a dependency or clone a primitive.",
+      "expected_output": "Notice composes existing Alert and Button primitives, follows the existing story pattern, exposes the component, and keeps dismissal accessible.",
+      "files": [
+        "evals/files/component-library/packages/ui/src/Alert.tsx",
+        "evals/files/component-library/packages/ui/src/Button.tsx",
+        "evals/files/component-library/packages/ui/src/Alert.stories.tsx",
+        "evals/files/component-library/packages/ui/src/Notice.tsx",
+        "evals/files/component-library/packages/ui/src/Notice.stories.tsx",
+        "evals/files/component-library/packages/ui/src/index.ts"
+      ],
+      "expectations": [
+        "Adds a Notice component rather than replacing or duplicating Alert",
+        "Notice imports and composes the existing Alert primitive",
+        "Notice uses the existing Button primitive for dismissal or follows its native button contract",
+        "Dismissal has an accessible name and a keyboard-operable button",
+        "Adds a Notice story following the existing Alert story structure",
+        "Exports Notice from the component-library entrypoint",
+        "Does not add a dependency, second UI kit, custom focus trap, or forwarding-only wrapper"
+      ]
+    },
+    {
+      "id": 17,
+      "prompt": "Build this tabs component as an explicitly custom implementation. The existing app has no component library, and this custom keyboard interaction is required. Do not substitute a template or invent a dependency.",
+      "expected_output": "Honors the explicit custom request while implementing an accessible tablist, tabs, panels, focus behavior, and selected relationships.",
+      "files": [
+        "evals/files/custom-component/package.json",
+        "evals/files/custom-component/src/Tabs.tsx"
+      ],
+      "expectations": [
+        "Keeps a custom Tabs implementation in src/Tabs.tsx",
+        "Uses tablist, tab, and tabpanel semantics or equivalent accessible relationships",
+        "Exposes selected state and aria-controls/aria-labelledby relationships",
+        "Provides a keyboard path for moving between tabs and activating or selecting one",
+        "Provides a visible focus style or preserves a clear focus indicator",
+        "Does not add a dependency or reject the explicitly requested custom implementation"
+      ]
+    },
+    {
+      "id": 18,
+      "prompt": "In this web app, add formatSlug in the existing format.ts file. This is a logic-only utility change. Do not change UI, docs, templates, or dependencies.",
+      "expected_output": "Adds the small utility in the existing file without UI or template scaffolding.",
+      "files": [
+        "evals/files/web-logic-only/src/format.ts"
+      ],
+      "expectations": [
+        "formatSlug exists in src/format.ts and lowercases trimmed whitespace-separated text",
+        "Does not add a page, component, docs site, template, story, or stylesheet",
+        "Does not add a dependency or new utility module",
+        "Does not rewrite unrelated existing code"
+      ]
+    },
+    {
+      "id": 19,
+      "prompt": "In src/task.ts, add subtract(a, b) and keep this as a local-only code change. Do not browse, research, or create a research note.",
+      "expected_output": "Adds subtract in the existing file without external research or research artifacts.",
+      "files": ["evals/files/research-routing/src/task.ts"],
+      "expectations": [
+        "subtract exists in task.ts and returns a - b",
+        "Does not create research.md or another research artifact",
+        "Does not add a dependency or unrelated file"
+      ]
+    },
+    {
+      "id": 20,
+      "prompt": "Research one current fact: which Python version introduced datetime.UTC? Use an official Python source, keep this a quick lookup, and replace the placeholder in research.md with a concise cited answer.",
+      "expected_output": "Uses L1 quick research: one focused lookup, one authoritative source with date, concise answer, no deep-research ceremony.",
+      "files": ["evals/files/research-routing/research.md"],
+      "expectations": [
+        "Uses an L1-sized quick lookup: a concise answer supported by one focused authoritative source, without deep-research ceremony",
+        "Answers which Python version introduced datetime.UTC",
+        "Cites an official Python source with a source link",
+        "Does not add a gap matrix, multi-agent plan, or extra report file"
+      ]
+    },
+    {
+      "id": 21,
+      "prompt": "Research whether this small Python project should use urllib.request or requests for its outbound fetches. Compare current official documentation, write the recommendation in research.md, and include the assumptions, answer slots, one cross-check, source links, and limitations.",
+      "expected_output": "Uses L2 targeted research: compares multiple sources, fills answer slots, makes a bounded recommendation, and exposes limitations.",
+      "files": ["evals/files/research-routing/research.md"],
+      "expectations": [
+        "Labels the work L2 or clearly describes it as targeted research",
+        "Compares urllib.request and requests with a recommendation",
+        "Includes assumptions or scope and identifies answer slots",
+        "Uses at least two relevant source links and a cross-check",
+        "Includes limitations or an explicit evidence gap"
+      ]
+    },
+    {
+      "id": 22,
+      "prompt": "Do Deep Research on the best database for our compliance-sensitive production application and recommend one. Do not assume workload, compliance jurisdiction, data residency, or budget. Before searching, record the L3 classification, proposed scope, and exactly one material clarifying question in research.md; do not invent findings before it is answered.",
+      "expected_output": "Recognizes L3 and stops before expensive research because material constraints are missing; asks exactly one clarifying question and records no fabricated findings.",
+      "files": ["evals/files/research-routing/research.md"],
+      "expectations": [
+        "Labels the request L3 or clearly identifies it as deep research",
+        "Records a proposed scope or research plan before searching",
+        "Asks exactly one material clarifying question",
+        "Does not invent a database recommendation or unsupported findings before clarification",
+        "Does not cite sources as if research had already been completed"
+      ]
+    },
+    {
+      "id": 23,
+      "prompt": "Research the current official documentation for Python HTTP timeout behavior and replace the placeholder in research.md. If Firecrawl is available, state why it would help and ask me before its first call; do not call Firecrawl or any other unapproved provider until I answer.",
+      "expected_output": "Chooses an appropriate bounded level and requests Firecrawl consent before using it; no unapproved provider call is treated as authorized.",
+      "files": ["evals/files/research-routing/research.md"],
+      "expectations": [
+        "States a research level and bounded plan before external research",
+        "Explicitly says Firecrawl is opt-in or asks permission before using it",
+        "Does not claim Firecrawl results or cite fetched content before consent",
+        "Keeps the requested Python timeout topic in scope"
+      ]
+    },
+    {
+      "id": 24,
+      "prompt": "Perform exhaustive Deep Research on current risks of AI-generated code in production software. Use primary sources, reconcile disagreements, write one complete report in research.md, and include the claim-source ledger, limitations, and the reason you stopped searching.",
+      "expected_output": "Uses L3 deep research with primary-source synthesis, a claim ledger, bounded iterative search, explicit limitations, and a stopping rationale.",
+      "files": ["evals/files/research-routing/research.md"],
+      "expectations": [
+        "Labels the work L3 or clearly identifies it as deep research",
+        "Includes an executive answer and findings organized around answer slots",
+        "Uses primary or authoritative source links and a claim-source ledger",
+        "Reconciles or bounds material disagreements",
+        "Includes assumptions, limitations, and a reason further searching was stopped",
+        "Writes one report note without extra summary files"
       ]
     }
   ]
