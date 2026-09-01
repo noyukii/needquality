@@ -36,6 +36,11 @@ inferred job. Within a category, match the longest explicit phrase,
 then fall back to a generic row. Select one primary job or flow and
 add matching Load references in table order. Compose multiple jobs or
 flows only when the user explicitly requests distinct operations.
+Composed jobs run as ordered phases: finish one job before starting
+the next, read each phase's references when that phase starts — not
+all upfront — and let the new phase's references replace the finished
+job's file as the governing guidance. The trace keeps every phase in
+selection order.
 Known limits: one-line `ceiling:` comment, not `TODO`. One slice:
 no sibling feature, next-step menu, or extra `SUMMARY.md`. Simple
 (one file, known helper): no plan.
@@ -58,18 +63,26 @@ higher-priority host instructions normally.
 
 ## Trace
 
-When active, emit one compact Markdown code-span on the first line of
-the final response, after selected references have been read:
+When active, emit one compact Markdown code-span on the last line of
+the final response, after every selected reference has been read:
 
 `⚙︎ Used: job:implement · load:javascript · load:typescript`
 
-Use `job:<slug>` for the selected Words job, `flow:<slug>` for a
+Use `job:<slug>` for each selected Words job, `flow:<slug>` for a
 selected flow, and `load:<slug>` for each successfully read Load
-reference. Preserve selection order and remove duplicates. Omit the
-root skill and exact paths. Omit unavailable references from the line
-and state the read failure in the normal response. Emit no trace for
-inactive question-only requests. This marker reports prompt-level
-routing, not hidden host telemetry.
+reference. Preserve selection order across phases and remove
+duplicates. Omit the root skill and exact paths. Omit unavailable
+references from the line and state the read failure in the normal
+response. Emit no trace for inactive question-only requests. Exactly
+one `⚙︎ Used:` line per response; live flags never reuse that form.
+
+When the host shows reasoning or streams progress, flag each
+reference at the moment it is read — `⚙︎ Load: ui` — so the user can
+watch routing while the run is live. Flags belong in visible
+reasoning or a progress update, never as a second `⚙︎ Used:` line. A
+host that shows neither skips the flags; the final line still reports
+every load. This marker reports prompt-level routing, not hidden host
+telemetry.
 
 ## Research
 
