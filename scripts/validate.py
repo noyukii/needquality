@@ -54,8 +54,13 @@ def prose_without_code(text: str) -> str:
         if marker in {"```", "~~~"}:
             fence = marker
             continue
-        kept.append(re.sub(r"(?P<ticks>`+).*?(?P=ticks)", "", line))
-    return "\n".join(kept)
+        kept.append(line)
+    return re.sub(
+        r"(?P<ticks>`+).*?(?P=ticks)",
+        "",
+        "\n".join(kept),
+        flags=re.S,
+    )
 
 
 def clean_link_target(target: str) -> str:
@@ -281,6 +286,12 @@ def validate_load_table(errors: list[str]) -> None:
 
 
 def validate_routes(errors: list[str]) -> tuple[int, int]:
+    root_skill = ROOT / "SKILL.md"
+    if not root_skill.is_file():
+        errors.append("routes: missing SKILL.md")
+        jobs = len(list((ROOT / "references" / "jobs").glob("*.md")))
+        flows = len(list((ROOT / "references" / "flows").glob("*.md")))
+        return jobs, flows
     rows = words_rows(errors)
     validate_load_table(errors)
     phrases: dict[str, str] = {}

@@ -176,6 +176,43 @@ class InstallerTests(unittest.TestCase):
             with patch.object(install, "ROOT", root):
                 self.assertEqual(install.skill_name(), "needquality")
 
+    def test_frontmatter_name_must_be_needquality(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "renamed-checkout"
+            root.mkdir()
+            (root / "SKILL.md").write_text(
+                "---\nname: another-skill\ndescription: test\n---\n", encoding="utf-8"
+            )
+            with patch.object(install, "ROOT", root):
+                with self.assertRaisesRegex(ValueError, "needquality"):
+                    install.skill_name()
+
+    def test_sync_preflights_every_source_before_creating_destination(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            destination = root / "skills" / "needquality"
+            missing = root / "missing.txt"
+            drift = install.Drift(missing=["missing.txt"])
+            with self.assertRaisesRegex(ValueError, "source"):
+                install.sync(
+                    destination,
+                    {"missing.txt": missing},
+                    {},
+                    drift,
+                    False,
+                )
+            self.assertFalse(destination.exists())
+
+    def test_manifest_rejects_unsafe_managed_paths(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            manifest = Path(temp) / "manifest.json"
+            manifest.write_text(
+                json.dumps({"format": 1, "files": {"../outside": "abc"}}),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(ValueError, "unsafe managed path"):
+                install.read_manifest(manifest)
+
     def test_transaction_rolls_back_when_a_copy_fails(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             destination = Path(temp) / "skills" / "needquality"

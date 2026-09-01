@@ -53,6 +53,13 @@ def source_files() -> dict[str, Path]:
     return runtime_files(ROOT)
 
 
+def managed_relative(rel: str) -> Path:
+    relative = Path(rel)
+    if not rel or relative.is_absolute() or ".." in relative.parts:
+        raise ValueError(f"unsafe managed path: {rel}")
+    return relative
+
+
 def read_manifest(path: Path) -> dict[str, str]:
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
@@ -63,6 +70,8 @@ def read_manifest(path: Path) -> dict[str, str]:
         isinstance(rel, str) and isinstance(value, str) for rel, value in files.items()
     ):
         raise ValueError(f"invalid manifest: {path}")
+    for rel in files:
+        managed_relative(rel)
     return files
 
 
@@ -80,9 +89,7 @@ def previous_files(destination: Path) -> dict[str, str]:
 
 
 def safe_path(destination: Path, rel: str) -> Path:
-    relative = Path(rel)
-    if relative.is_absolute() or ".." in relative.parts:
-        raise ValueError(f"unsafe managed path: {rel}")
+    relative = managed_relative(rel)
     if destination.is_symlink():
         raise ValueError(f"destination is a symlink: {destination}")
     output = destination / relative
@@ -100,6 +107,49 @@ def safe_path(destination: Path, rel: str) -> Path:
     except ValueError as error:
         raise ValueError(f"managed path escapes destination: {output}") from error
     return output
+
+
+def preflight_sync(
+    destination: Path,
+    sources: dict[str, Path],
+    previous: dict[str, str],
+    drift: Drift,
+    force: bool,
+) -> tuple[list[str], list[str], list[str], dict[str, Path]]:
+    if destination.is_symlink():
+        raise ValueError(f"destination is a symlink: {destination}")
+    if destination.exists() and not destination.is_dir():
+        raise ValueError(f"destination is not a directory: {destination}")
+    manifest = destination / MANIFEST_NAME
+    if manifest.is_symlink():
+        raise ValueError(f"manifest is a symlink: {manifest}")
+    if manifest.exists() and not manifest.is_file():
+        raise ValueError(f"manifest is not a regular file: {manifest}")
+
+    for rel, source in sources.items():
+        managed_relative(rel)
+        if source.is_symlink() or not source.is_file():
+            raise ValueError(f"source is not a regular file: {source}")
+        digest(source)
+    for rel in previous:
+        managed_relative(rel)
+
+    replaceable_conflicts = {
+        rel
+        for rel in drift.conflicts
+        if force
+        and rel in previous
+        and rel in sources
+        and safe_path(destination, rel).is_file()
+    }
+    blocked = sorted(rel for rel in drift.conflicts if rel not in replaceable_conflicts)
+    replacements = sorted({*drift.missing, *drift.changed, *replaceable_conflicts})
+    removals = sorted(drift.stale)
+    outputs = {
+        rel: safe_path(destination, rel)
+        for rel in (*replacements, *removals)
+    }
+    return blocked, replacements, removals, outputs
 
 
 def inspect(destination: Path, sources: dict[str, Path], previous: dict[str, str]) -> Drift:
@@ -188,29 +238,29 @@ def sync(
     drift: Drift,
     force: bool,
 ) -> list[str]:
-    replaceable_conflicts = {
-        rel
-        for rel in drift.conflicts
-        if force
-        and rel in previous
-        and rel in sources
-        and safe_path(destination, rel).is_file()
-    }
-    blocked = [rel for rel in drift.conflicts if rel not in replaceable_conflicts]
+    blocked, replacements, removals, outputs = preflight_sync(
+        destination, sources, previous, drift, force
+    )
     if blocked:
         return blocked
 
-    replacements = sorted({*drift.missing, *drift.changed, *replaceable_conflicts})
-    removals = sorted(drift.stale)
-    outputs = {rel: safe_path(destination, rel) for rel in (*replacements, *removals)}
     destination.parent.mkdir(parents=True, exist_ok=True)
     destination.mkdir(parents=True, exist_ok=True)
     manifest = destination / MANIFEST_NAME
+    destination_device = destination.stat().st_dev
+    for rel, output in outputs.items():
+        existing_parent = output.parent
+        while not existing_parent.exists():
+            existing_parent = existing_parent.parent
+        if existing_parent.stat().st_dev != destination_device:
+            raise ValueError(f"managed path is on another filesystem: {rel}")
 
     with tempfile.TemporaryDirectory(
-        dir=destination.parent, prefix=f".{destination.name}.transaction."
+        dir=destination, prefix=".transaction."
     ) as temp:
         transaction = Path(temp)
+        if transaction.stat().st_dev != destination_device:
+            raise ValueError("transaction staging is not on the destination filesystem")
         staged = transaction / "staged"
         backups = transaction / "backups"
         existed: set[str] = set()
@@ -230,6 +280,20 @@ def sync(
         manifest_existed = manifest.is_file()
         if manifest_existed:
             shutil.copy2(manifest, manifest_backup)
+        (transaction / "journal.json").write_text(
+            json.dumps(
+                {
+                    "replacements": replacements,
+                    "removals": removals,
+                    "previously_existing": sorted(existed),
+                    "manifest_existed": manifest_existed,
+                },
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
 
         try:
             for rel in replacements:
