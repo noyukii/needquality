@@ -187,9 +187,20 @@ when the request clearly asks for separate operations in the same slice.
 | `.svelte` | [javascript.md](references/load/javascript.md) for `<script>`; [typescript.md](references/load/typescript.md) if `lang="ts"` |
 | `.swift` / SwiftUI | [swift.md](references/load/swift.md) |
 | `Dockerfile` / `compose.yaml` / `docker-compose.yml` | [docker.md](references/load/docker.md) |
-| `.py` | [python.md](references/load/python.md) |
+| `.py` | [python.md](references/load/python.md); Django also [python/django.md](references/load/python/django.md); FastAPI also [python/fastapi.md](references/load/python/fastapi.md) |
 | `.go` | [go.md](references/load/go.md) |
 | `.rs` | [rust.md](references/load/rust.md) |
+| `.java` | [java.md](references/load/java.md); Spring in the build file also [java/spring.md](references/load/java/spring.md) |
+| `.kt` `.kts` | [kotlin.md](references/load/kotlin.md); Android app code also [kotlin/android.md](references/load/kotlin/android.md) |
+| `.cs` `.csproj` `.razor` | [csharp.md](references/load/csharp.md); ASP.NET Core also [csharp/aspnet.md](references/load/csharp/aspnet.md) |
+| `.rb` / `Gemfile` / `.rake` | [ruby.md](references/load/ruby.md); Rails app code also [ruby/rails.md](references/load/ruby/rails.md) |
+| `.php` / `composer.json` | [php.md](references/load/php.md); Laravel app code also [php/laravel.md](references/load/php/laravel.md) |
+| `.c` `.h` `.cc` `.cpp` `.hpp` `.cxx` | [cpp.md](references/load/cpp.md) |
+| `.sh` `.bash` / shell shebang | [shell.md](references/load/shell.md) |
+| `.dart` / `pubspec.yaml` / Flutter | [dart.md](references/load/dart.md) |
+| `.ex` `.exs` / `mix.exs` | [elixir.md](references/load/elixir.md); Phoenix app code also [elixir/phoenix.md](references/load/elixir/phoenix.md) |
+| `.zig` / `build.zig` | [zig.md](references/load/zig.md) |
+| `.lua` / `.rockspec` | [lua.md](references/load/lua.md) |
 | `.sql` `.prisma` / schema / migration | [sql.md](references/load/sql.md) then [trust.md](references/load/trust.md) |
 | Postgres / Supabase / Neon | [sql.md](references/load/sql.md) then [postgres.md](references/load/postgres.md) then [trust.md](references/load/trust.md) |
 | HTTP, auth, DB, money, uploads, webhooks, outbound I/O | [trust.md](references/load/trust.md) |
