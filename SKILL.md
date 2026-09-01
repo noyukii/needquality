@@ -1,11 +1,12 @@
 ---
 name: needquality
 description: >
-  Route software engineering tasks to focused guidance for implementation,
-  debugging, code review, architecture, testing, delivery, technical research,
-  software documentation, UI/UX, trust boundaries, and agent-workflow design.
-  Use for repository work and technical artifacts; do not use for unrelated
-  general knowledge or non-technical prose polishing.
+  Route agent tasks to focused guidance for implementation, debugging,
+  code review, architecture, testing, delivery, technical research,
+  software documentation, UI/UX, trust boundaries, agent-workflow design,
+  structured writing, and teaching. Use for repository work, technical
+  artifacts, and the bundled writing and teaching flows; do not use for
+  unrelated general knowledge.
 ---
 
 # NeedQuality
@@ -48,6 +49,12 @@ For complex work, use the host's planning facility. If none exists,
 keep the plan in the conversation or an OS-temporary artifact, never a
 tracked repository file. Keep the requested scope and reuse existing seams.
 
+The router is a map, not the guidance. Do not edit, judge, or claim
+from this file's summaries alone; quoting a table row is not reading
+its file. Before the first edit of a turn, every matched row's file
+has been read this turn. A matched file left unread is a routing
+failure: stop, read it, then continue.
+
 ## Capabilities
 
 Use authorized tools exposed by the host. Parallel work is optional unless the
@@ -68,10 +75,16 @@ the final response, after every selected reference has been read:
 
 `⚙︎ Used: job:implement · load:javascript · load:typescript`
 
+Composed phases join with `‖`, each phase's job or flow first, then
+its loads:
+
+`⚙︎ Used: job:implement · load:ui ‖ job:document · load:copy`
+
 Use `job:<slug>` for each selected Words job, `flow:<slug>` for a
 selected flow, and `load:<slug>` for each successfully read Load
 reference. Preserve selection order across phases and remove
-duplicates. Omit the root skill and exact paths. Omit unavailable
+duplicates: a reference already listed in an earlier phase is not
+repeated. Omit the root skill and exact paths. Omit unavailable
 references from the line and state the read failure in the normal
 response. Emit no trace for inactive question-only requests. Exactly
 one `⚙︎ Used:` line per response; live flags never reuse that form.
@@ -114,6 +127,7 @@ when the request clearly asks for separate operations in the same slice.
 | simplify, simpler, less code | Shorter, same tests. Don't delete asked-for paths. | [simplify.md](references/jobs/simplify.md) |
 | implement, add, build, create | Ladder. One slice. | this file |
 | update, change, tweak | The named change only. Unnamed → one question. | this file |
+| upgrade deps, bump dependencies, update packages | One dependency per slice. Changelog before code; lockfile via the manager. | [deps.md](references/jobs/deps.md) |
 | secure, harden | The named boundary. | [trust.md](references/load/trust.md) |
 | commit, write a commit, git commit | Stage the named diff. Conventional message from this-turn status. Do not implement. | [commit.md](references/jobs/commit.md) |
 | open a PR, create a pull request, open an MR | One branch, body from this-turn diff, authorized provider interface. | [pr](references/flows/pr.md) |

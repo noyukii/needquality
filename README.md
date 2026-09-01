@@ -45,8 +45,9 @@ Routing follows four rules:
    in table order.
 
 Multiple jobs or flows are composed only when the request clearly asks for
-distinct operations. Active runs emit the canonical route trace documented in
-`SKILL.md`; unrelated question-only requests do not.
+distinct operations, and composed jobs run as ordered phases. Active runs emit
+the canonical route trace documented in `SKILL.md`; unrelated question-only
+requests do not.
 
 ```bash
 python3 scripts/validate.py --stats

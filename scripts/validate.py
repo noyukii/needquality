@@ -14,6 +14,7 @@ from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
 from eval_schema import load_evals, validate_baseline, validate_evals
+from lookup import EXT_DOMAIN
 from runtime_payload import frontmatter, runtime_files
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -23,12 +24,28 @@ REFERENCE_DEFINITION_RE = re.compile(r"(?m)^ {0,3}\[([^\]]+)\]:\s*(\S+)")
 TABLE_LINK_RE = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 RESEARCH_PATH = ROOT / "references" / "flows" / "research.md"
 EXPECTED_DESCRIPTION = (
-    "Route software engineering tasks to focused guidance for implementation, "
-    "debugging, code review, architecture, testing, delivery, technical research, "
-    "software documentation, UI/UX, trust boundaries, and agent-workflow design. "
-    "Use for repository work and technical artifacts; do not use for unrelated "
-    "general knowledge or non-technical prose polishing."
+    "Route agent tasks to focused guidance for implementation, debugging, "
+    "code review, architecture, testing, delivery, technical research, "
+    "software documentation, UI/UX, trust boundaries, agent-workflow design, "
+    "structured writing, and teaching. Use for repository work, technical "
+    "artifacts, and the bundled writing and teaching flows; do not use for "
+    "unrelated general knowledge."
 )
+TELL_DOMAINS = {
+    "agent",
+    "copy",
+    "domain",
+    "go",
+    "js",
+    "py",
+    "react",
+    "rs",
+    "sql",
+    "test",
+    "trust",
+    "ts",
+    "ui",
+}
 FORBIDDEN_PORTABLE_TEXT = {
     "/clear": "provider-specific clear command",
     "/compact": "provider-specific compact command",
@@ -355,6 +372,16 @@ def validate_tells(errors: list[str]) -> int:
         errors.append("data/tells.csv: duplicate id")
     if any(not all(row.get(key, "").strip() for key in required) for row in rows):
         errors.append("data/tells.csv: blank field")
+    domains = {row.get("domain", "") for row in rows}
+    unknown = sorted(domains - TELL_DOMAINS - {""})
+    if unknown:
+        errors.append(f"data/tells.csv: unknown domains: {', '.join(unknown)}")
+    mapped = {domain for values in EXT_DOMAIN.values() for domain in values}
+    unmatched = sorted(mapped - domains)
+    if unmatched:
+        errors.append(
+            f"data/tells.csv: lookup.py domains with no rows: {', '.join(unmatched)}"
+        )
     return len(rows)
 
 
