@@ -27,8 +27,8 @@ reason; read it before rewriting.
 
 1. That diff is the world. Don't restyle files it doesn't touch.
 2. Large diff: `python scripts/lookup.py --ext <ext>` from this
-   skill directory (stdlib). Fingerprint dump, not a Load of
-   ui.md. Skip lookup for a one-file logic patch.
+   skill directory (stdlib). Fingerprint dump, not a full UI
+   reference load. Skip lookup for a one-file logic patch.
 3. Minimal focused edits. No new files, no architecture.
 4. 1–3 sentence summary.
 

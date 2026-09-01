@@ -6,8 +6,8 @@ an implementation contract, not optional polish. It covers semantics,
 keyboard behavior, states, tokens, responsive layout, visual hierarchy,
 and accessibility even when the requested change is behavior or API
 only. Non-UI web logic can use its language/framework reference alone.
-`SKILL.md` decides when to load this file. Core rules there still apply:
-don't invent an existing thing; look it up. For new web work, read
+The contract in `SKILL.md` still applies: look an existing thing up
+before inventing it. For new web work, read
 [templates.md](ui/templates.md). Strings: [copy.md](copy.md). Inventing a landing: [uniqueness.md](uniqueness.md)
 (fetches: [ui/inspo.md](ui/inspo.md); confirm:
 [ui/detect.md](ui/detect.md)).
