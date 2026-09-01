@@ -100,6 +100,17 @@ class EvalSchemaTests(unittest.TestCase):
         self.assertEqual(result[0]["status"], "INCONCLUSIVE")
         self.assertIsNone(result[0]["pass"])
 
+    def test_incomplete_tool_evidence_cannot_pass_tool_used(self) -> None:
+        result = evaluator.deterministic_checks(
+            {"checks": [{"id": "used-web", "kind": "tool_used", "tool": "web"}]},
+            Path.cwd(),
+            "",
+            [{"tool": "web"}],
+            ["unrecognized tool-like record"],
+        )
+        self.assertEqual(result[0]["status"], "INCONCLUSIVE")
+        self.assertIsNone(result[0]["pass"])
+
     def test_invalid_generic_tool_names_make_evidence_inconclusive(self) -> None:
         records = {
             "cursor": {"type": "tool_call", "tool_call": {"name": None}},
@@ -252,6 +263,16 @@ class EvalSchemaTests(unittest.TestCase):
         self.assertEqual(errors, [])
         self.assertEqual([row["tool"] for row in events], ["shell", "web"])
 
+    def test_codex_extracts_top_level_final_result(self) -> None:
+        events, texts, errors = evaluator.adapter_for("codex").normalize_record(
+            {"type": "result", "result": "final answer"},
+            "stdout:9",
+            datetime.now(UTC).isoformat(),
+        )
+        self.assertEqual(errors, [])
+        self.assertEqual(texts, ["final answer"])
+        self.assertEqual(events[0]["type"], "result")
+
     def test_streaming_runner_timestamps_events_and_times_out(self) -> None:
         class FakeAdapter(evaluator.ProviderAdapter):
             name = "fake"
@@ -287,6 +308,34 @@ class EvalSchemaTests(unittest.TestCase):
             self.assertTrue(timed["timed_out"])
             self.assertNotEqual(timed["returncode"], 0)
 
+    def test_streaming_runner_ignores_blank_jsonl_lines(self) -> None:
+        class FakeAdapter(evaluator.ProviderAdapter):
+            name = "fake"
+            executable = sys.executable
+
+            def build_command(self, prompt, cwd, model, mode):
+                script = (
+                    "import json; "
+                    "print(json.dumps({'type':'progress'})); "
+                    "print(); "
+                    "print(json.dumps({'type':'result','result':'done'}))"
+                )
+                return [sys.executable, "-u", "-c", script, prompt]
+
+            def normalize_record(self, payload, raw_ref, timestamp):
+                return (
+                    [evaluator.event(payload["type"], raw_ref, timestamp)],
+                    [payload["result"]] if isinstance(payload.get("result"), str) else [],
+                    [],
+                )
+
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            result = FakeAdapter().execute("task", root, root, None, 2)
+        self.assertFalse(result["malformed"])
+        self.assertEqual(result["final"], "done")
+        self.assertEqual(len(result["raw_events"]), 2)
+
     def test_judge_tool_event_is_inconclusive_and_attempt_evidence_is_redacted(self) -> None:
         class FakeJudgeAdapter(evaluator.ProviderAdapter):
             name = "claude"
@@ -296,10 +345,12 @@ class EvalSchemaTests(unittest.TestCase):
             def __init__(self):
                 self.prompts = []
                 self.workspaces = []
+                self.workspace_contents = []
 
             def build_command(self, prompt, cwd, model, mode):
                 self.prompts.append((mode, prompt))
                 self.workspaces.append((mode, cwd))
+                self.workspace_contents.append((mode, list(cwd.iterdir())))
                 if mode == "judge":
                     script = (
                         "import json; "
@@ -345,7 +396,7 @@ class EvalSchemaTests(unittest.TestCase):
         self.assertIn('"tool": "web"', persisted)
         self.assertNotIn("sk-example-secret", adapter.prompts[-1][1])
         self.assertNotEqual(adapter.workspaces[0][1], adapter.workspaces[-1][1])
-        self.assertEqual(list(adapter.workspaces[-1][1].iterdir()), [])
+        self.assertEqual(adapter.workspace_contents[-1], ("judge", []))
 
     def test_malformed_task_attempt_grades_every_assertion_inconclusive(self) -> None:
         class MalformedAdapter(evaluator.ProviderAdapter):
@@ -386,6 +437,13 @@ class EvalSchemaTests(unittest.TestCase):
         response = "`⚙︎ Used: job:implement · load:python`\nDone"
         result = evaluator.deterministic_checks(case, Path.cwd(), response, [])
         self.assertEqual(result[0]["status"], "PASS")
+
+    def test_trace_absent_rejects_unformatted_trace_marker(self) -> None:
+        case = {"checks": [{"id": "route", "kind": "trace_absent"}]}
+        result = evaluator.deterministic_checks(
+            case, Path.cwd(), "⚙︎ Used: job:implement\nDone", []
+        )
+        self.assertEqual(result[0]["status"], "FAIL")
 
     def test_malformed_stream_is_detectable(self) -> None:
         events, final = evaluator.normalize_output("not json\n", "cursor")

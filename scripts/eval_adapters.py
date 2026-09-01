@@ -208,6 +208,8 @@ class ProviderAdapter:
                     stderr.append(line[: MAX_STDERR - stderr_size])
                     stderr_size += len(stderr[-1])
                 return
+            if not line.strip():
+                return
             index += 1
             raw_ref = f"stdout:{index}"
             try:
@@ -477,6 +479,8 @@ class CodexAdapter(ProviderAdapter):
                 errors.append(f"unrecognized Codex tool event type: {kind}")
             if kind in {"agent_message", "output_text"} and isinstance(item.get("text"), str):
                 texts.append(item["text"])
+        if isinstance(payload.get("result"), str):
+            texts.append(payload["result"])
         if not events:
             events.append(event(outer_kind, raw_ref, timestamp, status=payload.get("status")))
         return events, texts, errors
