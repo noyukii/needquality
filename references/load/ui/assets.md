@@ -54,8 +54,8 @@ type still has to carry the job.
 
 ## In this patch
 
-1. Real file from the repo, or a labeled placeholder (`Product
-   screenshot`). No random Unsplash.
+1. Real file from the repo, or a labeled placeholder
+   (`Product screenshot`). No random Unsplash.
 2. No invented names, faces, or logos.
 3. Marks: the ladder above. One set. Size below the type.
    [cards.md](cards.md). Lucide as an equal feature-grid is that
