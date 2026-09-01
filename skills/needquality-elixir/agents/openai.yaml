@@ -1,0 +1,6 @@
+interface:
+  display_name: "NeedQuality elixir"
+  short_description: "Elixir and Phoenix patch rules"
+  default_prompt: "Use $needquality-elixir for this task."
+policy:
+  allow_implicit_invocation: true

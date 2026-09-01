@@ -1,0 +1,6 @@
+interface:
+  display_name: "NeedQuality dart"
+  short_description: "Dart and Flutter patch rules"
+  default_prompt: "Use $needquality-dart for this task."
+policy:
+  allow_implicit_invocation: true

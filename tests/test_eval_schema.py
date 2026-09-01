@@ -534,6 +534,21 @@ class EvalSchemaTests(unittest.TestCase):
         clean = evaluator.deterministic_checks(case, Path.cwd(), "", [], diff="+++ b/src/add.ts\n+export function multiply() {}\n")
         self.assertEqual([row["status"] for row in clean], ["PASS", "PASS", "PASS"])
 
+    def test_reasoning_check_reads_thinking_stream_or_is_inconclusive(self) -> None:
+        case = {"checks": [{"id": "flag", "kind": "reasoning_contains", "pattern": "read needquality-ui"}]}
+        raw = [
+            {
+                "payload": {
+                    "type": "assistant",
+                    "message": {"content": [{"type": "thinking", "thinking": "read needquality-ui then edit"}]},
+                }
+            }
+        ]
+        result = evaluator.deterministic_checks(case, Path.cwd(), "Done", [], raw_events=raw)
+        self.assertEqual(result[0]["status"], "PASS")
+        result = evaluator.deterministic_checks(case, Path.cwd(), "Done", [], raw_events=[])
+        self.assertEqual(result[0]["status"], "INCONCLUSIVE")
+
     def test_added_files_are_detected_from_the_workspace(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             work = Path(temp)

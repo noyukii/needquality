@@ -1,0 +1,6 @@
+interface:
+  display_name: "NeedQuality lua"
+  short_description: "Lua patch rules"
+  default_prompt: "Use $needquality-lua for this task."
+policy:
+  allow_implicit_invocation: true

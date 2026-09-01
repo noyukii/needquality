@@ -1,0 +1,6 @@
+interface:
+  display_name: "NeedQuality cpp"
+  short_description: "C and C++ patch rules"
+  default_prompt: "Use $needquality-cpp for this task."
+policy:
+  allow_implicit_invocation: true

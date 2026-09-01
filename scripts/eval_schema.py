@@ -16,6 +16,7 @@ CHECK_KINDS = {
     "file_not_contains",
     "response_contains",
     "response_not_contains",
+    "reasoning_contains",
     "diff_contains",
     "diff_not_contains",
     "no_new_files",
@@ -30,6 +31,7 @@ PATTERN_KINDS = {
     "file_not_contains",
     "response_contains",
     "response_not_contains",
+    "reasoning_contains",
     "diff_contains",
     "diff_not_contains",
 }

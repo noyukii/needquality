@@ -78,7 +78,7 @@ class ValidationTests(unittest.TestCase):
         validate.validate_research(errors)
         validate.validate_tells(errors)
         self.assertEqual(errors, [])
-        self.assertEqual(len(reports), 20)
+        self.assertEqual(len(reports), 31)
         self.assertLessEqual(tokens, validate.METADATA_TOKEN_BUDGET)
         self.assertTrue(all(report.name.startswith("needquality-") for report in reports))
 
@@ -251,6 +251,23 @@ class ValidationTests(unittest.TestCase):
         )
         self.assertEqual(targets, ["missing.md"])
         self.assertEqual(errors, [])
+
+    def test_tells_domain_vocabulary_is_closed(self) -> None:
+        with fake_repo() as root:
+            cleanup = root / "skills" / validate.CLEANUP_SKILL
+            (cleanup / "data").mkdir(parents=True)
+            (cleanup / "scripts").mkdir()
+            (cleanup / "data" / "tells.csv").write_text(
+                "id,domain,tell,fix\nreal,ui,tell,fix\ntypo,uii,tell,fix\n",
+                encoding="utf-8",
+            )
+            (cleanup / "scripts" / "lookup.py").write_text(
+                'EXT_DOMAIN = {".py": ("py",), ".tsx": ("react", "ui")}\n', encoding="utf-8"
+            )
+            errors: list[str] = []
+            validate.validate_tells(errors)
+            self.assertTrue(any("unknown domains: uii" in error for error in errors))
+            self.assertTrue(any("lookup.py domains with no rows: py, react" in error for error in errors))
 
     def test_missing_skills_directory_reports_error_without_crashing(self) -> None:
         with fake_repo() as root:

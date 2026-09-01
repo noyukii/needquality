@@ -1,0 +1,6 @@
+interface:
+  display_name: "NeedQuality java"
+  short_description: "Java and Spring patch rules"
+  default_prompt: "Use $needquality-java for this task."
+policy:
+  allow_implicit_invocation: true

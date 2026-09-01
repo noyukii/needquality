@@ -3,9 +3,10 @@ name: needquality-implement
 description: >
   Ship the smallest defensible code change in an existing repository: scope
   it, reuse what the tree already has, patch one slice, prove it with a fresh
-  command, and report exactly what was verified. Use when the user says
-  "implement", "add", "build", "create", "update", "change", "tweak", or
-  "implement the spec" about application code. Fixes, reviews, tests,
+  command, and report exactly what was verified; also one dependency bump
+  per slice. Use when the user says "implement", "add", "build", "create",
+  "update", "change", "tweak", "implement the spec", "upgrade deps",
+  "bump dependencies", or "update packages". Fixes, reviews, tests,
   cleanup, and git delivery have their own needquality skills.
 ---
 
@@ -115,6 +116,7 @@ file only when the user asks for one.
 |---|---|
 | Implementing a spec or ticket set | [implement.md](references/implement.md) |
 | Parallel implementation across isolated worktrees, one PR | [implement-spec.md](references/implement-spec.md) |
+| Upgrade deps, bump a dependency, update packages | [deps.md](references/deps.md) |
 
 `implement-spec` needs independent agents and isolated worktrees; when the
 host lacks either, follow `implement.md` and report the fallback.
@@ -123,7 +125,11 @@ host lacks either, follow `implement.md` and report the fallback.
 
 Load by what the patch touches: `needquality-javascript` (`.js` `.ts`
 `.jsx` `.tsx` `.vue` `.svelte`), `needquality-python`, `needquality-go`,
-`needquality-rust`, `needquality-swift`, `needquality-docker`,
-`needquality-sql` (schema and migrations), `needquality-trust` (HTTP,
-auth, database writes, money, uploads, webhooks, outbound I/O), and
-`needquality-ui` (web pages and components).
+`needquality-rust`, `needquality-swift`, `needquality-java`,
+`needquality-kotlin`, `needquality-csharp`, `needquality-ruby`,
+`needquality-php`, `needquality-elixir`, `needquality-cpp`,
+`needquality-shell`, `needquality-dart`, `needquality-zig`,
+`needquality-lua`, `needquality-docker`, `needquality-sql` (schema and
+migrations), `needquality-trust` (HTTP, auth, database writes, money,
+uploads, webhooks, outbound I/O), and `needquality-ui` (web pages and
+components).

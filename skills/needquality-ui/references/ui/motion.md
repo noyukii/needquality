@@ -20,8 +20,8 @@ explain a state change, delete it.
 ## Why
 
 WCAG 2.2.2 Pause, Stop, Hide; 2.3.3 Animation from Interactions:
-motion from scrolling/gestures can be disabled. `prefers-reduced-
-motion` is the CSS hook ([web.dev](https://web.dev/articles/prefers-reduced-motion)).
+motion from scrolling/gestures can be disabled. `prefers-reduced-motion`
+is the CSS hook ([web.dev](https://web.dev/articles/prefers-reduced-motion)).
 
 NN/G homepage: don't use motion to draw attention — movement is
 read as advertising (banner blindness). Paramount-style autoplay

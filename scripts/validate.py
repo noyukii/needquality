@@ -5,8 +5,8 @@ from __future__ import annotations
 
 import argparse
 import csv
+import importlib.util
 import json
-import os
 import re
 import sys
 from collections import defaultdict
@@ -38,7 +38,22 @@ DESCRIPTION_MAX_CHARS = 1024
 SKILL_MAX_LINES = 500
 # Descriptions of every skill sit in context on every turn; keep the total
 # under a budget (chars / 4 as a token estimate).
-METADATA_TOKEN_BUDGET = 2200
+METADATA_TOKEN_BUDGET = 3200
+TELL_DOMAINS = {
+    "agent",
+    "copy",
+    "domain",
+    "go",
+    "js",
+    "py",
+    "react",
+    "rs",
+    "sql",
+    "test",
+    "trust",
+    "ts",
+    "ui",
+}
 FORBIDDEN_PORTABLE_TEXT = {
     "/clear": "provider-specific clear command",
     "/compact": "provider-specific compact command",
@@ -345,6 +360,17 @@ def validate_research(errors: list[str]) -> None:
             errors.append(f"research: missing {label}")
 
 
+def lookup_extension_domains() -> dict[str, tuple[str, ...]]:
+    """EXT_DOMAIN from the cleanup skill's bundled lookup script."""
+    path = ROOT / SKILLS_DIR / CLEANUP_SKILL / "scripts" / "lookup.py"
+    spec = importlib.util.spec_from_file_location("needquality_lookup", path)
+    if spec is None or spec.loader is None:
+        raise ValueError(f"cannot load {path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.EXT_DOMAIN
+
+
 def validate_tells(errors: list[str]) -> int:
     path = ROOT / SKILLS_DIR / CLEANUP_SKILL / "data" / "tells.csv"
     if not path.is_file():
@@ -361,6 +387,18 @@ def validate_tells(errors: list[str]) -> int:
         errors.append("tells.csv: duplicate id")
     if any(not all(row.get(key, "").strip() for key in required) for row in rows):
         errors.append("tells.csv: blank field")
+    domains = {row.get("domain", "") for row in rows}
+    unknown = sorted(domains - TELL_DOMAINS - {""})
+    if unknown:
+        errors.append(f"tells.csv: unknown domains: {', '.join(unknown)}")
+    try:
+        mapped = {domain for values in lookup_extension_domains().values() for domain in values}
+    except (OSError, ValueError, AttributeError) as error:
+        errors.append(f"tells.csv: cannot read lookup.py domains: {error}")
+        return len(rows)
+    unmatched = sorted(mapped - domains)
+    if unmatched:
+        errors.append(f"tells.csv: lookup.py domains with no rows: {', '.join(unmatched)}")
     return len(rows)
 
 

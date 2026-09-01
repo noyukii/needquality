@@ -1,0 +1,6 @@
+interface:
+  display_name: "NeedQuality ruby"
+  short_description: "Ruby and Rails patch rules"
+  default_prompt: "Use $needquality-ruby for this task."
+policy:
+  allow_implicit_invocation: true

@@ -25,17 +25,28 @@ directories, so each one installs and works on its own.
 
 | Skill | What it does | Loads when |
 |---|---|---|
-| `needquality-implement` | Smallest defensible code change: ladder of what to build, patch rules, fresh proof, compact close | implement, add, build, create, update, change code |
+| `needquality-implement` | Smallest defensible code change: ladder of what to build, patch rules, fresh proof, compact close; one dependency bump per slice | implement, add, build, create, update, change code, upgrade deps |
 | `needquality-fix` | Reproduce, root-cause patch, re-run the red command; hard-bug diagnosis loop; first failing CI check; merge conflicts by intent | fix, bug, broken, diagnose, CI is red, merge conflict |
 | `needquality-review` | Evidence-backed review with docs, guidelines, and a command; two-axis Standards/Spec review; live browser verification | review, look over, review since, verify in the browser |
 | `needquality-cleanup` | Strip slop from a named diff, refactor, simplify, one named improvement, one measured optimization; slop-tell lookup script | clean up, deslop, refactor, simplify, optimize |
 | `needquality-test` | Tests at public seams in the existing runner, red-green TDD at agreed seams, product QA pass | add tests, coverage, tdd, QA this |
 | `needquality-ship` | Commit the named diff, open a PR/MR, changelog for a range, cut a release, requested rebase or squash | commit, open a PR, changelog, cut a release, rebase onto |
 | `needquality-javascript` | JS/TS rules: promises and fetch, prototype pollution, DOM and Node sinks, TypeScript parsing, React, Next.js, React Native, Vue | editing .js .ts .jsx .tsx .vue .svelte |
-| `needquality-python` | Python rules: parsing over `.get` chains, exceptions over silent zeros, FastAPI dependencies, Pydantic v2, ORM hygiene | editing .py |
+| `needquality-python` | Python rules: parsing over `.get` chains, exceptions over silent zeros, ORM hygiene; Django and FastAPI references | editing .py |
 | `needquality-go` | Go rules: wrapped errors, contexts and deadlines, bounded goroutines, client timeouts | editing .go |
 | `needquality-rust` | Rust rules: the crate's error type and `?`, ownership over clones, async hygiene | editing .rs |
 | `needquality-swift` | Swift/SwiftUI rules: state ownership, navigation, structured concurrency, optionals | editing .swift |
+| `needquality-java` | Java rules: exceptions, nulls, streams, concurrency, JDBC/JPA; Spring Boot reference | editing .java, Maven/Gradle, Spring |
+| `needquality-kotlin` | Kotlin rules: nullability, coroutines, sealed types, Gradle DSL; Android reference | editing .kt/.kts, Android, Compose |
+| `needquality-csharp` | C# rules: nullable types, async and cancellation, disposal, EF Core; ASP.NET Core reference | editing .cs/.csproj/.razor |
+| `needquality-ruby` | Ruby rules: Bundler, exceptions over nil, enumerables; Rails reference | editing .rb/.rake, Gemfile, Rails |
+| `needquality-php` | PHP rules: Composer, strict types, PDO, escaping; Laravel reference | editing .php, composer.json, Laravel |
+| `needquality-elixir` | Elixir rules: pattern matching, tagged tuples, OTP, Ecto; Phoenix reference | editing .ex/.exs, mix.exs, Phoenix |
+| `needquality-cpp` | C/C++ rules: ownership and RAII, bounds and lifetimes, overflow, sanitizers | editing .c/.h/.cc/.cpp/.hpp |
+| `needquality-shell` | Shell rules: strict mode, quoting, arrays, traps, portability, ShellCheck | editing .sh/.bash, shell shebangs |
+| `needquality-dart` | Dart/Flutter rules: null safety, async and streams, widget state, pubspec | editing .dart, pubspec.yaml |
+| `needquality-zig` | Zig rules: repo Zig version, allocators and defer, error unions, comptime | editing .zig, build.zig |
+| `needquality-lua` | Lua rules: runtime version, locals, pcall, metatables, rockspecs | editing .lua/.rockspec |
 | `needquality-docker` | Container rules: pinned bases, lockfile installs, layer order, non-root, health checks, secrets outside the image | Dockerfile, compose files |
 | `needquality-sql` | Keyed writes, transactions, identifier allowlists, N+1 and pagination, Postgres pooling, expand-contract migrations | .sql, .prisma, schema, migrate, Postgres/Supabase/Neon |
 | `needquality-trust` | Session-scoped authz, CSRF and JWT, bounded fan-out, timeouts and 2xx checks, idempotent retries, atomic reservations, uploads, webhooks, secrets | HTTP handlers, auth, money, uploads, webhooks, outbound I/O, secure, harden |
@@ -46,8 +57,9 @@ directories, so each one installs and works on its own.
 | `needquality-research` | Bounded research: L0-L3 depth, required slots, cited primary sources, explicit stop | research this, primary sources, unfamiliar API |
 | `needquality-ops` | One signal in the installed observability stack, bash wizards for manual provisioning, handoff notes | instrument, add metrics, wizard, handoff |
 
-Descriptions for all twenty skills total about 2,000 tokens of always-loaded
-metadata (`python3 scripts/validate.py --stats` prints the current number).
+Descriptions for all thirty-one skills total about 2,800 tokens of
+always-loaded metadata (`python3 scripts/validate.py --stats` prints the
+current number; the validator caps it at 3,200).
 
 ## Install and update
 

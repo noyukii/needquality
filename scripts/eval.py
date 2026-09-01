@@ -43,6 +43,7 @@ LEGACY_PAYLOAD = (
 )
 SKILL_FILE_RE = re.compile(r"(needquality-[a-z0-9]+(?:-[a-z0-9]+)*)[/\\]SKILL\.md")
 SMOKE_SKILL = "needquality-review"
+REASONING_KEYS = {"thinking", "reasoning", "thought"}
 PROFILE_CUSTOMIZATIONS = (
     ".agents/skills",
     ".codex/skills",
@@ -326,6 +327,30 @@ def skills_loaded(events: list[dict]) -> list[str]:
     return sorted(found)
 
 
+def reasoning_texts(raw_events: list[dict] | None) -> list[str]:
+    texts: list[str] = []
+
+    def walk(node: object) -> None:
+        if isinstance(node, dict):
+            for key, value in node.items():
+                if key in REASONING_KEYS and isinstance(value, str):
+                    texts.append(value)
+                else:
+                    walk(value)
+            if str(node.get("type", "")) in REASONING_KEYS:
+                for key in ("text", "summary", "content"):
+                    value = node.get(key)
+                    if isinstance(value, str):
+                        texts.append(value)
+        elif isinstance(node, list):
+            for item in node:
+                walk(item)
+
+    for row in raw_events or []:
+        walk(row.get("payload"))
+    return texts
+
+
 def result_row(item_id: str, status: str, why: str, kind: str) -> dict:
     return {
         "id": item_id,
@@ -344,6 +369,7 @@ def deterministic_checks(
     normalization_errors: list[str] | None = None,
     diff: str = "",
     new_files: list[str] | None = None,
+    raw_events: list[dict] | None = None,
 ) -> list[dict]:
     results: list[dict] = []
     errors = normalization_errors or []
@@ -373,6 +399,15 @@ def deterministic_checks(
             passed = matched if kind == "response_contains" else not matched
             status = "PASS" if passed else "FAIL"
             why = f"response pattern {'matched' if matched else 'did not match'}"
+        elif kind == "reasoning_contains":
+            texts = reasoning_texts(raw_events)
+            if not texts:
+                status = "INCONCLUSIVE"
+                why = "runner exposed no reasoning stream"
+            else:
+                matched = re.search(check["pattern"], "\n".join(texts), re.S) is not None
+                status = "PASS" if matched else "FAIL"
+                why = f"reasoning pattern {'matched' if matched else 'did not match'}"
         elif kind in {"diff_contains", "diff_not_contains"}:
             matched = re.search(check["pattern"], diff, re.M) is not None
             passed = matched if kind == "diff_contains" else not matched
@@ -561,6 +596,7 @@ def run_attempt(
             task["normalization_errors"],
             diff=diff,
             new_files=new_files,
+            raw_events=task["raw_events"],
         )
         rubric = case.get("rubric", [])
         judge_seconds = 0.0
