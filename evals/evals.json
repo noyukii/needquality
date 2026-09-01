@@ -1926,6 +1926,79 @@
           "text": "Tells the next session to invoke NeedQuality and select a root-routed flow slug."
         }
       ]
+    },
+    {
+      "id": 73,
+      "name": "inactive-nontechnical-prose",
+      "prompt": "Polish this wedding invitation sentence: We hope you can join us for dinner. Answer only with the revised sentence.",
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "no-trace",
+          "kind": "trace_absent"
+        },
+        {
+          "id": "no-web",
+          "kind": "tool_absent",
+          "tool": "web"
+        }
+      ],
+      "rubric": [
+        {
+          "id": "stays-inactive",
+          "text": "Answers the non-technical prose request directly without invoking or discussing NeedQuality routing."
+        }
+      ]
+    },
+    {
+      "id": 74,
+      "name": "design-sequential-fallback",
+      "prompt": "Use the module-interface design flow, but independent workers are unavailable. Route this request without designing, and explain the fallback in one sentence.",
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "route",
+          "kind": "trace_exact",
+          "parts": [
+            "flow:codebase-design"
+          ]
+        }
+      ],
+      "rubric": [
+        {
+          "id": "sequential-design-is-valid",
+          "text": "States that alternatives can be produced as separate sequential design passes and does not pretend parallel workers ran."
+        }
+      ]
+    },
+    {
+      "id": 75,
+      "name": "implement-spec-capability-fallback",
+      "prompt": "Run implement-spec, but independent agents and isolated worktrees are unavailable. Route only; state the honest fallback without implementing.",
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "route",
+          "kind": "trace_exact",
+          "parts": [
+            "flow:implement-spec"
+          ]
+        },
+        {
+          "id": "names-fallback",
+          "kind": "response_contains",
+          "pattern": "(?i)fall(?:ing)? back|fallback"
+        }
+      ],
+      "rubric": [
+        {
+          "id": "uses-ordinary-implement",
+          "text": "Says ordinary implement will run the ticket graph sequentially because the required isolation capabilities are unavailable."
+        }
+      ]
     }
   ]
 }
