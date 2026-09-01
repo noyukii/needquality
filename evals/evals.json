@@ -1,14 +1,39 @@
 {
-  "version": 2,
+  "version": 3,
   "evals": [
     {
       "id": 1,
+      "name": "in-src-users-ts-add-a-createuser",
       "prompt": "In src/users.ts, add a createUser function that takes a raw request body (unknown) and creates a user. Email must be valid, name is required, and duplicate emails should fail. Use the existing helpers in the file. Don't add a framework.",
+      "skills": [
+        "needquality-implement",
+        "needquality-javascript"
+      ],
       "files": [
         "evals/files/add-endpoint/src/users.ts"
       ],
-      "name": "in-src-users-ts-add-a-createuser",
       "critical": false,
+      "checks": [
+        {
+          "id": "loads-implement",
+          "kind": "skill_loaded",
+          "skill": "needquality-implement"
+        },
+        {
+          "id": "loads-javascript",
+          "kind": "skill_loaded",
+          "skill": "needquality-javascript"
+        },
+        {
+          "id": "no-ts-escape",
+          "kind": "diff_not_contains",
+          "pattern": "^\\+.*(as any|as unknown as|@ts-ignore)"
+        },
+        {
+          "id": "no-new-files",
+          "kind": "no_new_files"
+        }
+      ],
       "rubric": [
         {
           "id": "quality-1",
@@ -58,18 +83,42 @@
           "id": "quality-12",
           "text": "Final response is compact and outcome-first: for this ordinary implementation task it uses no more than four short bullets (excluding any trace), states what changed and the fresh verification command/result, and omits a walkthrough, file-by-file dump, repeated prompt text, full code, or a large diff"
         }
-      ],
-      "checks": []
+      ]
     },
     {
       "id": 2,
+      "name": "in-reports-py-add-a-function-that",
       "prompt": "In reports.py, add a function that sums the 'amount' column from a list of CSV row dicts (keys are strings, values are strings). Invalid rows should not silently become zero. Reuse what already exists in this folder.",
+      "skills": [
+        "needquality-implement",
+        "needquality-python"
+      ],
       "files": [
         "evals/files/reuse-helper/billing.py",
         "evals/files/reuse-helper/reports.py"
       ],
-      "name": "in-reports-py-add-a-function-that",
       "critical": false,
+      "checks": [
+        {
+          "id": "loads-implement",
+          "kind": "skill_loaded",
+          "skill": "needquality-implement"
+        },
+        {
+          "id": "loads-python",
+          "kind": "skill_loaded",
+          "skill": "needquality-python"
+        },
+        {
+          "id": "no-print",
+          "kind": "diff_not_contains",
+          "pattern": "^\\+.*\\bprint\\("
+        },
+        {
+          "id": "no-new-files",
+          "kind": "no_new_files"
+        }
+      ],
       "rubric": [
         {
           "id": "quality-1",
@@ -95,17 +144,42 @@
           "id": "quality-6",
           "text": "Summation lives in reports.py, not a new util module"
         }
-      ],
-      "checks": []
+      ]
     },
     {
       "id": 3,
+      "name": "load-config-in-config-py-crashes-when",
       "prompt": "load_config in config.py crashes when the file is missing or the JSON is invalid. Make it reliable: the caller needs to know that loading failed. Do not invent a config.",
+      "skills": [
+        "needquality-fix",
+        "needquality-python"
+      ],
       "files": [
         "evals/files/boundary-errors/config.py"
       ],
-      "name": "load-config-in-config-py-crashes-when",
       "critical": false,
+      "checks": [
+        {
+          "id": "loads-fix",
+          "kind": "skill_loaded",
+          "skill": "needquality-fix"
+        },
+        {
+          "id": "loads-python",
+          "kind": "skill_loaded",
+          "skill": "needquality-python"
+        },
+        {
+          "id": "no-bare-except",
+          "kind": "diff_not_contains",
+          "pattern": "^\\+\\s*except\\s*:"
+        },
+        {
+          "id": "no-print",
+          "kind": "diff_not_contains",
+          "pattern": "^\\+.*\\bprint\\("
+        }
+      ],
       "rubric": [
         {
           "id": "quality-1",
@@ -131,17 +205,36 @@
           "id": "quality-6",
           "text": "No print() leftovers"
         }
-      ],
-      "checks": []
+      ]
     },
     {
       "id": 4,
+      "name": "in-invoices-ts-add-getinvoice-id-for",
       "prompt": "In invoices.ts, add getInvoice(id) for the current user. Use existing helpers. Don't add a framework.",
+      "skills": [
+        "needquality-implement",
+        "needquality-javascript"
+      ],
       "files": [
         "evals/files/scoped-read/invoices.ts"
       ],
-      "name": "in-invoices-ts-add-getinvoice-id-for",
       "critical": true,
+      "checks": [
+        {
+          "id": "loads-implement",
+          "kind": "skill_loaded",
+          "skill": "needquality-implement"
+        },
+        {
+          "id": "loads-javascript",
+          "kind": "skill_loaded",
+          "skill": "needquality-javascript"
+        },
+        {
+          "id": "no-new-files",
+          "kind": "no_new_files"
+        }
+      ],
       "rubric": [
         {
           "id": "quality-1",
@@ -167,18 +260,42 @@
           "id": "quality-6",
           "text": "No extra service class or new util file"
         }
-      ],
-      "checks": []
+      ]
     },
     {
       "id": 5,
+      "name": "in-slots-ts-add-reserve-slotid-that",
       "prompt": "In slots.ts, add reserve(slotId) that marks a free slot reserved. Two requests may run at once. Reuse what already exists in this folder. Don't add a framework.",
+      "skills": [
+        "needquality-implement",
+        "needquality-javascript"
+      ],
       "files": [
         "evals/files/atomic-reserve/store.ts",
         "evals/files/atomic-reserve/slots.ts"
       ],
-      "name": "in-slots-ts-add-reserve-slotid-that",
       "critical": true,
+      "checks": [
+        {
+          "id": "loads-implement",
+          "kind": "skill_loaded",
+          "skill": "needquality-implement"
+        },
+        {
+          "id": "loads-javascript",
+          "kind": "skill_loaded",
+          "skill": "needquality-javascript"
+        },
+        {
+          "id": "no-sleep",
+          "kind": "diff_not_contains",
+          "pattern": "^\\+.*(setTimeout\\(|sleep\\()"
+        },
+        {
+          "id": "no-new-files",
+          "kind": "no_new_files"
+        }
+      ],
       "rubric": [
         {
           "id": "quality-1",
@@ -208,17 +325,42 @@
           "id": "quality-7",
           "text": "Does not add Prisma, a database client, or a new package"
         }
-      ],
-      "checks": []
+      ]
     },
     {
       "id": 6,
+      "name": "load-prices-in-prices-py-must-return",
       "prompt": "load_prices in prices.py must return the JSON list from PRICES_URL. The caller needs to know if loading failed. Do not invent a list. Do not take a URL from the caller. Don't add a library.",
+      "skills": [
+        "needquality-implement",
+        "needquality-python"
+      ],
       "files": [
         "evals/files/outbound-get/prices.py"
       ],
-      "name": "load-prices-in-prices-py-must-return",
       "critical": true,
+      "checks": [
+        {
+          "id": "loads-implement",
+          "kind": "skill_loaded",
+          "skill": "needquality-implement"
+        },
+        {
+          "id": "loads-python",
+          "kind": "skill_loaded",
+          "skill": "needquality-python"
+        },
+        {
+          "id": "no-bare-except",
+          "kind": "diff_not_contains",
+          "pattern": "^\\+\\s*except\\s*:"
+        },
+        {
+          "id": "no-print",
+          "kind": "diff_not_contains",
+          "pattern": "^\\+.*\\bprint\\("
+        }
+      ],
       "rubric": [
         {
           "id": "quality-1",
@@ -248,17 +390,36 @@
           "id": "quality-7",
           "text": "No print() leftovers"
         }
-      ],
-      "checks": []
+      ]
     },
     {
       "id": 7,
+      "name": "in-invoices-ts-add-createinvoice-that-takes",
       "prompt": "In invoices.ts, add createInvoice that takes a raw request body (unknown). Total is required. Use existing helpers. Don't add a framework.",
+      "skills": [
+        "needquality-implement",
+        "needquality-javascript"
+      ],
       "files": [
         "evals/files/scoped-read/invoices.ts"
       ],
-      "name": "in-invoices-ts-add-createinvoice-that-takes",
       "critical": true,
+      "checks": [
+        {
+          "id": "loads-implement",
+          "kind": "skill_loaded",
+          "skill": "needquality-implement"
+        },
+        {
+          "id": "loads-javascript",
+          "kind": "skill_loaded",
+          "skill": "needquality-javascript"
+        },
+        {
+          "id": "no-new-files",
+          "kind": "no_new_files"
+        }
+      ],
       "rubric": [
         {
           "id": "quality-1",
@@ -284,17 +445,36 @@
           "id": "quality-6",
           "text": "No extra service class or new util file"
         }
-      ],
-      "checks": []
+      ]
     },
     {
       "id": 8,
+      "name": "in-profile-jsx-show-the-user-s",
       "prompt": "In profile.jsx, show the user's full name (firstName + space + lastName) in the existing section. Don't add a library. Don't fetch.",
+      "skills": [
+        "needquality-implement",
+        "needquality-javascript"
+      ],
       "files": [
         "evals/files/react-derived/profile.jsx"
       ],
-      "name": "in-profile-jsx-show-the-user-s",
       "critical": false,
+      "checks": [
+        {
+          "id": "loads-implement",
+          "kind": "skill_loaded",
+          "skill": "needquality-implement"
+        },
+        {
+          "id": "loads-javascript",
+          "kind": "skill_loaded",
+          "skill": "needquality-javascript"
+        },
+        {
+          "id": "no-new-files",
+          "kind": "no_new_files"
+        }
+      ],
       "rubric": [
         {
           "id": "quality-1",
@@ -316,17 +496,36 @@
           "id": "quality-5",
           "text": "No extra util file or wrapper component file"
         }
-      ],
-      "checks": []
+      ]
     },
     {
       "id": 9,
+      "name": "in-settings-js-implement-mergesettings-raw-so",
       "prompt": "In settings.js, implement mergeSettings(raw) so a JSON string of user settings overlays defaults. Only theme and locale are allowed. Invalid JSON should fail. Don't add a library.",
+      "skills": [
+        "needquality-implement",
+        "needquality-javascript"
+      ],
       "files": [
         "evals/files/js-merge/settings.js"
       ],
-      "name": "in-settings-js-implement-mergesettings-raw-so",
       "critical": true,
+      "checks": [
+        {
+          "id": "loads-implement",
+          "kind": "skill_loaded",
+          "skill": "needquality-implement"
+        },
+        {
+          "id": "loads-javascript",
+          "kind": "skill_loaded",
+          "skill": "needquality-javascript"
+        },
+        {
+          "id": "no-new-files",
+          "kind": "no_new_files"
+        }
+      ],
       "rubric": [
         {
           "id": "quality-1",
@@ -352,17 +551,37 @@
           "id": "quality-6",
           "text": "No extra util file"
         }
-      ],
-      "checks": []
+      ]
     },
     {
       "id": 10,
+      "name": "loadprices-in-prices-js-must-return-the",
       "prompt": "loadPrices in prices.js must return the JSON list from PRICES_URL. The caller needs to know if loading failed. Do not invent a list. Do not take a URL from the caller. Don't add a library.",
+      "skills": [
+        "needquality-implement",
+        "needquality-javascript"
+      ],
       "files": [
         "evals/files/outbound-get-js/prices.js"
       ],
-      "name": "loadprices-in-prices-js-must-return-the",
       "critical": true,
+      "checks": [
+        {
+          "id": "loads-implement",
+          "kind": "skill_loaded",
+          "skill": "needquality-implement"
+        },
+        {
+          "id": "loads-javascript",
+          "kind": "skill_loaded",
+          "skill": "needquality-javascript"
+        },
+        {
+          "id": "no-console-log",
+          "kind": "diff_not_contains",
+          "pattern": "^\\+.*console\\.log\\("
+        }
+      ],
       "rubric": [
         {
           "id": "quality-1",
@@ -392,17 +611,37 @@
           "id": "quality-7",
           "text": "No console.log leftovers"
         }
-      ],
-      "checks": []
+      ]
     },
     {
       "id": 11,
+      "name": "in-users-sql-add-a-statement-that",
       "prompt": "In users.sql, add a statement that deactivates the user whose email is ada@example.com. Match the file. Don't add a framework.",
+      "skills": [
+        "needquality-implement",
+        "needquality-sql"
+      ],
       "files": [
         "evals/files/sql-write/users.sql"
       ],
-      "name": "in-users-sql-add-a-statement-that",
       "critical": true,
+      "checks": [
+        {
+          "id": "loads-implement",
+          "kind": "skill_loaded",
+          "skill": "needquality-implement"
+        },
+        {
+          "id": "loads-sql",
+          "kind": "skill_loaded",
+          "skill": "needquality-sql"
+        },
+        {
+          "id": "no-drop",
+          "kind": "diff_not_contains",
+          "pattern": "(?i)^\\+.*(DROP TABLE|TRUNCATE)"
+        }
+      ],
       "rubric": [
         {
           "id": "quality-1",
@@ -424,17 +663,36 @@
           "id": "quality-5",
           "text": "Does not invent columns that are not id/email/active/last_seen"
         }
-      ],
-      "checks": []
+      ]
     },
     {
       "id": 12,
+      "name": "in-app-py-add-delete-items-id",
       "prompt": "In app.py, add DELETE /items/{id} that deletes the current user's item. Reuse existing helpers. Don't add a framework.",
+      "skills": [
+        "needquality-implement",
+        "needquality-python"
+      ],
       "files": [
         "evals/files/fastapi-depends/app.py"
       ],
-      "name": "in-app-py-add-delete-items-id",
       "critical": true,
+      "checks": [
+        {
+          "id": "loads-implement",
+          "kind": "skill_loaded",
+          "skill": "needquality-implement"
+        },
+        {
+          "id": "loads-python",
+          "kind": "skill_loaded",
+          "skill": "needquality-python"
+        },
+        {
+          "id": "no-new-files",
+          "kind": "no_new_files"
+        }
+      ],
       "rubric": [
         {
           "id": "quality-1",
@@ -460,17 +718,51 @@
           "id": "quality-6",
           "text": "No extra router/service file"
         }
-      ],
-      "checks": []
+      ]
     },
     {
       "id": 13,
+      "name": "in-src-add-ts-add-a-multiply",
       "prompt": "In src/add.ts, add a multiply function that returns a times b. Use the existing file. Don't add a framework.",
+      "skills": [
+        "needquality-implement",
+        "needquality-javascript"
+      ],
       "files": [
         "evals/files/no-matt-docs/src/add.ts"
       ],
-      "name": "in-src-add-ts-add-a-multiply",
       "critical": false,
+      "checks": [
+        {
+          "id": "loads-implement",
+          "kind": "skill_loaded",
+          "skill": "needquality-implement"
+        },
+        {
+          "id": "loads-javascript",
+          "kind": "skill_loaded",
+          "skill": "needquality-javascript"
+        },
+        {
+          "id": "absent-context-md",
+          "kind": "path_absent",
+          "path": "CONTEXT.md"
+        },
+        {
+          "id": "absent-docs-adr",
+          "kind": "path_absent",
+          "path": "docs/adr"
+        },
+        {
+          "id": "absent-scratch",
+          "kind": "path_absent",
+          "path": ".scratch"
+        },
+        {
+          "id": "no-new-files",
+          "kind": "no_new_files"
+        }
+      ],
       "rubric": [
         {
           "id": "quality-1",
@@ -492,17 +784,42 @@
           "id": "quality-5",
           "text": ".scratch is absent (skill-side-effects says .scratch: absent)"
         }
-      ],
-      "checks": []
+      ]
     },
     {
       "id": 14,
+      "name": "in-hero-tsx-make-the-continue-button",
       "prompt": "In Hero.tsx, make the Continue button a directional next-step CTA. Use what is already in the file. Don't add a library.",
+      "skills": [
+        "needquality-implement",
+        "needquality-javascript",
+        "needquality-ui"
+      ],
       "files": [
         "evals/files/cta-icon/Hero.tsx"
       ],
-      "name": "in-hero-tsx-make-the-continue-button",
       "critical": false,
+      "checks": [
+        {
+          "id": "loads-implement",
+          "kind": "skill_loaded",
+          "skill": "needquality-implement"
+        },
+        {
+          "id": "loads-javascript",
+          "kind": "skill_loaded",
+          "skill": "needquality-javascript"
+        },
+        {
+          "id": "loads-ui",
+          "kind": "skill_loaded",
+          "skill": "needquality-ui"
+        },
+        {
+          "id": "no-new-files",
+          "kind": "no_new_files"
+        }
+      ],
       "rubric": [
         {
           "id": "quality-1",
@@ -524,19 +841,34 @@
           "id": "quality-5",
           "text": "No extra util file or new component file"
         }
-      ],
-      "checks": []
+      ]
     },
     {
       "id": 15,
+      "name": "in-this-existing-mkdocs-repository-add-an",
       "prompt": "In this existing MkDocs repository, add an informational callout to docs/index.md. Do not add a CSS framework.",
+      "skills": [
+        "needquality-implement",
+        "needquality-ui"
+      ],
       "files": [
         "evals/files/mkdocs-template/mkdocs.yml",
         "evals/files/mkdocs-template/docs/index.md",
         "evals/files/mkdocs-template/docs/stylesheets/extra.css"
       ],
-      "name": "in-this-existing-mkdocs-repository-add-an",
       "critical": false,
+      "checks": [
+        {
+          "id": "loads-implement",
+          "kind": "skill_loaded",
+          "skill": "needquality-implement"
+        },
+        {
+          "id": "loads-ui",
+          "kind": "skill_loaded",
+          "skill": "needquality-ui"
+        }
+      ],
       "rubric": [
         {
           "id": "quality-1",
@@ -562,12 +894,17 @@
           "id": "quality-6",
           "text": "Callout remains readable and does not rely on color alone for meaning"
         }
-      ],
-      "checks": []
+      ]
     },
     {
       "id": 16,
+      "name": "add-a-dismissible-informational-notice-component-to",
       "prompt": "Add a dismissible informational Notice component to this React component library. Do not add a dependency or clone a primitive.",
+      "skills": [
+        "needquality-implement",
+        "needquality-javascript",
+        "needquality-ui"
+      ],
       "files": [
         "evals/files/component-library/packages/ui/src/Alert.tsx",
         "evals/files/component-library/packages/ui/src/Button.tsx",
@@ -576,8 +913,24 @@
         "evals/files/component-library/packages/ui/src/Notice.stories.tsx",
         "evals/files/component-library/packages/ui/src/index.ts"
       ],
-      "name": "add-a-dismissible-informational-notice-component-to",
       "critical": false,
+      "checks": [
+        {
+          "id": "loads-implement",
+          "kind": "skill_loaded",
+          "skill": "needquality-implement"
+        },
+        {
+          "id": "loads-javascript",
+          "kind": "skill_loaded",
+          "skill": "needquality-javascript"
+        },
+        {
+          "id": "loads-ui",
+          "kind": "skill_loaded",
+          "skill": "needquality-ui"
+        }
+      ],
       "rubric": [
         {
           "id": "quality-1",
@@ -607,18 +960,39 @@
           "id": "quality-7",
           "text": "Does not add a dependency, second UI kit, custom focus trap, or forwarding-only wrapper"
         }
-      ],
-      "checks": []
+      ]
     },
     {
       "id": 17,
+      "name": "build-this-tabs-component-as-an-explicitly",
       "prompt": "Build this tabs component as an explicitly custom implementation. The existing app has no component library, and this custom keyboard interaction is required. Do not substitute a template or invent a dependency.",
+      "skills": [
+        "needquality-implement",
+        "needquality-javascript",
+        "needquality-ui"
+      ],
       "files": [
         "evals/files/custom-component/package.json",
         "evals/files/custom-component/src/Tabs.tsx"
       ],
-      "name": "build-this-tabs-component-as-an-explicitly",
       "critical": false,
+      "checks": [
+        {
+          "id": "loads-implement",
+          "kind": "skill_loaded",
+          "skill": "needquality-implement"
+        },
+        {
+          "id": "loads-javascript",
+          "kind": "skill_loaded",
+          "skill": "needquality-javascript"
+        },
+        {
+          "id": "loads-ui",
+          "kind": "skill_loaded",
+          "skill": "needquality-ui"
+        }
+      ],
       "rubric": [
         {
           "id": "quality-1",
@@ -644,17 +1018,41 @@
           "id": "quality-6",
           "text": "Does not add a dependency or reject the explicitly requested custom implementation"
         }
-      ],
-      "checks": []
+      ]
     },
     {
       "id": 18,
+      "name": "in-this-web-app-add-formatslug-in",
       "prompt": "In this web app, add formatSlug in the existing format.ts file. This is a logic-only utility change. Do not change UI, docs, templates, or dependencies.",
+      "skills": [
+        "needquality-implement",
+        "needquality-javascript"
+      ],
       "files": [
         "evals/files/web-logic-only/src/format.ts"
       ],
-      "name": "in-this-web-app-add-formatslug-in",
       "critical": false,
+      "checks": [
+        {
+          "id": "loads-implement",
+          "kind": "skill_loaded",
+          "skill": "needquality-implement"
+        },
+        {
+          "id": "loads-javascript",
+          "kind": "skill_loaded",
+          "skill": "needquality-javascript"
+        },
+        {
+          "id": "skips-ui",
+          "kind": "skill_not_loaded",
+          "skill": "needquality-ui"
+        },
+        {
+          "id": "no-new-files",
+          "kind": "no_new_files"
+        }
+      ],
       "rubric": [
         {
           "id": "quality-1",
@@ -672,17 +1070,51 @@
           "id": "quality-4",
           "text": "Does not rewrite unrelated existing code"
         }
-      ],
-      "checks": []
+      ]
     },
     {
       "id": 19,
+      "name": "in-src-task-ts-add-subtract-a",
       "prompt": "In src/task.ts, add subtract(a, b) and keep this as a local-only code change. Do not browse, research, or create a research note.",
+      "skills": [
+        "needquality-implement",
+        "needquality-javascript"
+      ],
       "files": [
         "evals/files/research-routing/src/task.ts"
       ],
-      "name": "in-src-task-ts-add-subtract-a",
       "critical": true,
+      "checks": [
+        {
+          "id": "loads-implement",
+          "kind": "skill_loaded",
+          "skill": "needquality-implement"
+        },
+        {
+          "id": "loads-javascript",
+          "kind": "skill_loaded",
+          "skill": "needquality-javascript"
+        },
+        {
+          "id": "no-web",
+          "kind": "tool_absent",
+          "tool": "web"
+        },
+        {
+          "id": "skips-research",
+          "kind": "skill_not_loaded",
+          "skill": "needquality-research"
+        },
+        {
+          "id": "no-research-note",
+          "kind": "path_absent",
+          "path": "research.md"
+        },
+        {
+          "id": "no-new-files",
+          "kind": "no_new_files"
+        }
+      ],
       "rubric": [
         {
           "id": "quality-1",
@@ -696,23 +1128,26 @@
           "id": "quality-3",
           "text": "Does not add a dependency or unrelated file"
         }
-      ],
-      "checks": [
-        {
-          "id": "no-web",
-          "kind": "tool_absent",
-          "tool": "web"
-        }
       ]
     },
     {
       "id": 20,
+      "name": "research-one-current-fact-which-python-version",
       "prompt": "Research one current fact: which Python version introduced datetime.UTC? Use an official Python source, keep this a quick lookup, and replace the placeholder in research.md with a concise cited answer.",
+      "skills": [
+        "needquality-research"
+      ],
       "files": [
         "evals/files/research-routing/research.md"
       ],
-      "name": "research-one-current-fact-which-python-version",
       "critical": true,
+      "checks": [
+        {
+          "id": "loads-research",
+          "kind": "skill_loaded",
+          "skill": "needquality-research"
+        }
+      ],
       "rubric": [
         {
           "id": "quality-1",
@@ -730,17 +1165,26 @@
           "id": "quality-4",
           "text": "Does not add a gap matrix, multi-agent plan, or extra report file"
         }
-      ],
-      "checks": []
+      ]
     },
     {
       "id": 21,
+      "name": "research-whether-this-small-python-project-should",
       "prompt": "Research whether this small Python project should use urllib.request or requests for its outbound fetches. Compare current official documentation, write the recommendation in research.md, and include the assumptions, answer slots, one cross-check, source links, and limitations.",
+      "skills": [
+        "needquality-research"
+      ],
       "files": [
         "evals/files/research-routing/research.md"
       ],
-      "name": "research-whether-this-small-python-project-should",
       "critical": true,
+      "checks": [
+        {
+          "id": "loads-research",
+          "kind": "skill_loaded",
+          "skill": "needquality-research"
+        }
+      ],
       "rubric": [
         {
           "id": "quality-1",
@@ -762,17 +1206,26 @@
           "id": "quality-5",
           "text": "Includes limitations or an explicit evidence gap"
         }
-      ],
-      "checks": []
+      ]
     },
     {
       "id": 22,
+      "name": "do-deep-research-on-the-best-database",
       "prompt": "Do Deep Research on the best database for our compliance-sensitive production application and recommend one. Do not assume workload, compliance jurisdiction, data residency, or budget. Before searching, record the L3 classification, proposed scope, and exactly one material clarifying question in research.md; do not invent findings before it is answered.",
+      "skills": [
+        "needquality-research"
+      ],
       "files": [
         "evals/files/research-routing/research.md"
       ],
-      "name": "do-deep-research-on-the-best-database",
       "critical": true,
+      "checks": [
+        {
+          "id": "loads-research",
+          "kind": "skill_loaded",
+          "skill": "needquality-research"
+        }
+      ],
       "rubric": [
         {
           "id": "quality-1",
@@ -794,17 +1247,26 @@
           "id": "quality-5",
           "text": "Does not cite sources as if research had already been completed"
         }
-      ],
-      "checks": []
+      ]
     },
     {
       "id": 23,
+      "name": "research-the-current-official-documentation-for-python",
       "prompt": "Research the current official documentation for Python HTTP timeout behavior and replace the placeholder in research.md. If Firecrawl is available, state why it would help and ask me before its first call; do not call Firecrawl or any other unapproved provider until I answer.",
+      "skills": [
+        "needquality-research"
+      ],
       "files": [
         "evals/files/research-routing/research.md"
       ],
-      "name": "research-the-current-official-documentation-for-python",
       "critical": true,
+      "checks": [
+        {
+          "id": "loads-research",
+          "kind": "skill_loaded",
+          "skill": "needquality-research"
+        }
+      ],
       "rubric": [
         {
           "id": "quality-1",
@@ -822,17 +1284,26 @@
           "id": "quality-4",
           "text": "Keeps the requested Python timeout topic in scope"
         }
-      ],
-      "checks": []
+      ]
     },
     {
       "id": 24,
+      "name": "perform-exhaustive-deep-research-on-current-risks",
       "prompt": "Perform exhaustive Deep Research on current risks of AI-generated code in production software. Use primary sources, reconcile disagreements, write one complete report in research.md, and include the claim-source ledger, limitations, and the reason you stopped searching.",
+      "skills": [
+        "needquality-research"
+      ],
       "files": [
         "evals/files/research-routing/research.md"
       ],
-      "name": "perform-exhaustive-deep-research-on-current-risks",
       "critical": true,
+      "checks": [
+        {
+          "id": "loads-research",
+          "kind": "skill_loaded",
+          "skill": "needquality-research"
+        }
+      ],
       "rubric": [
         {
           "id": "quality-1",
@@ -858,97 +1329,114 @@
           "id": "quality-6",
           "text": "Writes one report note without extra summary files"
         }
-      ],
-      "checks": []
+      ]
     },
     {
       "id": 25,
+      "name": "in-src-add-ts-add-multiply-a",
       "prompt": "In src/add.ts, add multiply(a, b) next to add. Keep this as a local code change and do not add a framework.",
+      "skills": [
+        "needquality-implement",
+        "needquality-javascript"
+      ],
       "files": [
         "evals/files/no-matt-docs/src/add.ts"
       ],
-      "name": "in-src-add-ts-add-multiply-a",
       "critical": true,
+      "checks": [
+        {
+          "id": "loads-implement",
+          "kind": "skill_loaded",
+          "skill": "needquality-implement"
+        },
+        {
+          "id": "loads-javascript",
+          "kind": "skill_loaded",
+          "skill": "needquality-javascript"
+        }
+      ],
       "rubric": [
         {
           "id": "quality-1",
           "text": "multiply exists in src/add.ts and returns a times b"
         }
-      ],
-      "checks": [
-        {
-          "id": "route",
-          "kind": "trace_exact",
-          "parts": [
-            "job:implement",
-            "load:javascript",
-            "load:typescript"
-          ]
-        }
       ]
     },
     {
       "id": 26,
+      "name": "in-tabs-tsx-implement-the-explicitly-requested",
       "prompt": "In Tabs.tsx, implement the explicitly requested custom accessible tabs behavior in the existing file. Do not add a dependency or a new file.",
+      "skills": [
+        "needquality-implement",
+        "needquality-javascript",
+        "needquality-ui"
+      ],
       "files": [
         "evals/files/custom-component/src/Tabs.tsx"
       ],
-      "name": "in-tabs-tsx-implement-the-explicitly-requested",
       "critical": true,
+      "checks": [
+        {
+          "id": "loads-implement",
+          "kind": "skill_loaded",
+          "skill": "needquality-implement"
+        },
+        {
+          "id": "loads-javascript",
+          "kind": "skill_loaded",
+          "skill": "needquality-javascript"
+        },
+        {
+          "id": "loads-ui",
+          "kind": "skill_loaded",
+          "skill": "needquality-ui"
+        }
+      ],
       "rubric": [
         {
           "id": "quality-1",
           "text": "Keeps the custom Tabs implementation in src/Tabs.tsx"
         }
-      ],
-      "checks": [
-        {
-          "id": "route",
-          "kind": "trace_exact",
-          "parts": [
-            "job:implement",
-            "load:react",
-            "load:javascript",
-            "load:typescript",
-            "load:ui"
-          ]
-        }
       ]
     },
     {
       "id": 27,
+      "name": "read-src-task-ts-and-tell-me",
       "prompt": "Read src/task.ts and tell me what it exports. Do not modify files, browse, research, or create any artifacts.",
+      "skills": [],
       "files": [
         "evals/files/research-routing/src/task.ts"
       ],
-      "name": "read-src-task-ts-and-tell-me",
       "critical": true,
+      "checks": [
+        {
+          "id": "no-skill-loaded",
+          "kind": "skill_not_loaded"
+        }
+      ],
       "rubric": [
         {
           "id": "quality-1",
           "text": "The response answers from src/task.ts without modifying the fixture"
         }
-      ],
-      "checks": [
-        {
-          "id": "route",
-          "kind": "trace_absent"
-        }
       ]
     },
     {
       "id": 28,
-      "name": "route-ask-matt",
-      "prompt": "which flow. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "name": "metadata-routing-names-fix",
+      "prompt": "Which needquality skill handles 'fix CI'? Answer in one sentence from the skill descriptions alone; do not load any skill.",
+      "skills": [],
       "files": [],
       "critical": true,
       "checks": [
         {
-          "id": "route",
-          "kind": "trace_exact",
-          "parts": [
-            "flow:ask-matt"
-          ]
+          "id": "no-skill-loaded",
+          "kind": "skill_not_loaded"
+        },
+        {
+          "id": "names-fix",
+          "kind": "response_contains",
+          "pattern": "needquality-fix"
         }
       ],
       "rubric": [
@@ -961,16 +1449,22 @@
     {
       "id": 29,
       "name": "route-code-review",
-      "prompt": "review since main. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "prompt": "review since main. Do not perform the workflow. Load the matching needquality skill and name it in one sentence.",
+      "skills": [
+        "needquality-review"
+      ],
       "files": [],
       "critical": true,
       "checks": [
         {
-          "id": "route",
-          "kind": "trace_exact",
-          "parts": [
-            "flow:code-review"
-          ]
+          "id": "loads-review",
+          "kind": "skill_loaded",
+          "skill": "needquality-review"
+        },
+        {
+          "id": "names-skill",
+          "kind": "response_contains",
+          "pattern": "needquality-review"
         }
       ],
       "rubric": [
@@ -983,16 +1477,22 @@
     {
       "id": 30,
       "name": "route-codebase-design",
-      "prompt": "deepen this module interface. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "prompt": "deepen this module interface. Do not perform the workflow. Load the matching needquality skill and name it in one sentence.",
+      "skills": [
+        "needquality-architecture"
+      ],
       "files": [],
       "critical": true,
       "checks": [
         {
-          "id": "route",
-          "kind": "trace_exact",
-          "parts": [
-            "flow:codebase-design"
-          ]
+          "id": "loads-architecture",
+          "kind": "skill_loaded",
+          "skill": "needquality-architecture"
+        },
+        {
+          "id": "names-skill",
+          "kind": "response_contains",
+          "pattern": "needquality-architecture"
         }
       ],
       "rubric": [
@@ -1005,16 +1505,22 @@
     {
       "id": 31,
       "name": "route-diagnosing-bugs",
-      "prompt": "diagnose this hard bug. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "prompt": "diagnose this hard bug. Do not perform the workflow. Load the matching needquality skill and name it in one sentence.",
+      "skills": [
+        "needquality-fix"
+      ],
       "files": [],
       "critical": true,
       "checks": [
         {
-          "id": "route",
-          "kind": "trace_exact",
-          "parts": [
-            "flow:diagnosing-bugs"
-          ]
+          "id": "loads-fix",
+          "kind": "skill_loaded",
+          "skill": "needquality-fix"
+        },
+        {
+          "id": "names-skill",
+          "kind": "response_contains",
+          "pattern": "needquality-fix"
         }
       ],
       "rubric": [
@@ -1027,16 +1533,22 @@
     {
       "id": 32,
       "name": "route-domain-modeling",
-      "prompt": "sharpen the domain model. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "prompt": "sharpen the domain model. Do not perform the workflow. Load the matching needquality skill and name it in one sentence.",
+      "skills": [
+        "needquality-plan"
+      ],
       "files": [],
       "critical": true,
       "checks": [
         {
-          "id": "route",
-          "kind": "trace_exact",
-          "parts": [
-            "flow:domain-modeling"
-          ]
+          "id": "loads-plan",
+          "kind": "skill_loaded",
+          "skill": "needquality-plan"
+        },
+        {
+          "id": "names-skill",
+          "kind": "response_contains",
+          "pattern": "needquality-plan"
         }
       ],
       "rubric": [
@@ -1049,16 +1561,22 @@
     {
       "id": 33,
       "name": "route-fix-ci",
-      "prompt": "fix CI. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "prompt": "fix CI. Do not perform the workflow. Load the matching needquality skill and name it in one sentence.",
+      "skills": [
+        "needquality-fix"
+      ],
       "files": [],
       "critical": true,
       "checks": [
         {
-          "id": "route",
-          "kind": "trace_exact",
-          "parts": [
-            "flow:fix-ci"
-          ]
+          "id": "loads-fix",
+          "kind": "skill_loaded",
+          "skill": "needquality-fix"
+        },
+        {
+          "id": "names-skill",
+          "kind": "response_contains",
+          "pattern": "needquality-fix"
         }
       ],
       "rubric": [
@@ -1071,16 +1589,22 @@
     {
       "id": 34,
       "name": "route-grill-me",
-      "prompt": "grill me. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "prompt": "grill me. Do not perform the workflow. Load the matching needquality skill and name it in one sentence.",
+      "skills": [
+        "needquality-plan"
+      ],
       "files": [],
       "critical": true,
       "checks": [
         {
-          "id": "route",
-          "kind": "trace_exact",
-          "parts": [
-            "flow:grill-me"
-          ]
+          "id": "loads-plan",
+          "kind": "skill_loaded",
+          "skill": "needquality-plan"
+        },
+        {
+          "id": "names-skill",
+          "kind": "response_contains",
+          "pattern": "needquality-plan"
         }
       ],
       "rubric": [
@@ -1093,16 +1617,22 @@
     {
       "id": 35,
       "name": "route-grill-with-docs",
-      "prompt": "grill with docs. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "prompt": "grill with docs. Do not perform the workflow. Load the matching needquality skill and name it in one sentence.",
+      "skills": [
+        "needquality-plan"
+      ],
       "files": [],
       "critical": true,
       "checks": [
         {
-          "id": "route",
-          "kind": "trace_exact",
-          "parts": [
-            "flow:grill-with-docs"
-          ]
+          "id": "loads-plan",
+          "kind": "skill_loaded",
+          "skill": "needquality-plan"
+        },
+        {
+          "id": "names-skill",
+          "kind": "response_contains",
+          "pattern": "needquality-plan"
         }
       ],
       "rubric": [
@@ -1115,16 +1645,22 @@
     {
       "id": 36,
       "name": "route-grilling",
-      "prompt": "interview me. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "prompt": "interview me. Do not perform the workflow. Load the matching needquality skill and name it in one sentence.",
+      "skills": [
+        "needquality-plan"
+      ],
       "files": [],
       "critical": true,
       "checks": [
         {
-          "id": "route",
-          "kind": "trace_exact",
-          "parts": [
-            "flow:grilling"
-          ]
+          "id": "loads-plan",
+          "kind": "skill_loaded",
+          "skill": "needquality-plan"
+        },
+        {
+          "id": "names-skill",
+          "kind": "response_contains",
+          "pattern": "needquality-plan"
         }
       ],
       "rubric": [
@@ -1137,16 +1673,22 @@
     {
       "id": 37,
       "name": "route-handoff",
-      "prompt": "prepare a handoff. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "prompt": "prepare a handoff. Do not perform the workflow. Load the matching needquality skill and name it in one sentence.",
+      "skills": [
+        "needquality-ops"
+      ],
       "files": [],
       "critical": true,
       "checks": [
         {
-          "id": "route",
-          "kind": "trace_exact",
-          "parts": [
-            "flow:handoff"
-          ]
+          "id": "loads-ops",
+          "kind": "skill_loaded",
+          "skill": "needquality-ops"
+        },
+        {
+          "id": "names-skill",
+          "kind": "response_contains",
+          "pattern": "needquality-ops"
         }
       ],
       "rubric": [
@@ -1159,16 +1701,22 @@
     {
       "id": 38,
       "name": "route-implement",
-      "prompt": "implement the spec. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "prompt": "implement the spec. Do not perform the workflow. Load the matching needquality skill and name it in one sentence.",
+      "skills": [
+        "needquality-implement"
+      ],
       "files": [],
       "critical": true,
       "checks": [
         {
-          "id": "route",
-          "kind": "trace_exact",
-          "parts": [
-            "flow:implement"
-          ]
+          "id": "loads-implement",
+          "kind": "skill_loaded",
+          "skill": "needquality-implement"
+        },
+        {
+          "id": "names-skill",
+          "kind": "response_contains",
+          "pattern": "needquality-implement"
         }
       ],
       "rubric": [
@@ -1181,16 +1729,22 @@
     {
       "id": 39,
       "name": "route-implement-spec",
-      "prompt": "implement-spec. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "prompt": "implement-spec. Do not perform the workflow. Load the matching needquality skill and name it in one sentence.",
+      "skills": [
+        "needquality-implement"
+      ],
       "files": [],
       "critical": true,
       "checks": [
         {
-          "id": "route",
-          "kind": "trace_exact",
-          "parts": [
-            "flow:implement-spec"
-          ]
+          "id": "loads-implement",
+          "kind": "skill_loaded",
+          "skill": "needquality-implement"
+        },
+        {
+          "id": "names-skill",
+          "kind": "response_contains",
+          "pattern": "needquality-implement"
         }
       ],
       "rubric": [
@@ -1203,16 +1757,22 @@
     {
       "id": 40,
       "name": "route-improve-codebase-architecture",
-      "prompt": "deepen the codebase architecture. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "prompt": "deepen the codebase architecture. Do not perform the workflow. Load the matching needquality skill and name it in one sentence.",
+      "skills": [
+        "needquality-architecture"
+      ],
       "files": [],
       "critical": true,
       "checks": [
         {
-          "id": "route",
-          "kind": "trace_exact",
-          "parts": [
-            "flow:improve-codebase-architecture"
-          ]
+          "id": "loads-architecture",
+          "kind": "skill_loaded",
+          "skill": "needquality-architecture"
+        },
+        {
+          "id": "names-skill",
+          "kind": "response_contains",
+          "pattern": "needquality-architecture"
         }
       ],
       "rubric": [
@@ -1224,17 +1784,15 @@
     },
     {
       "id": 41,
-      "name": "route-loop-me",
-      "prompt": "loop me. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "name": "inactive-loop-me",
+      "prompt": "Loop me: I want to design my weekly personal workflows for exercise and reading. Answer in one sentence.",
+      "skills": [],
       "files": [],
       "critical": true,
       "checks": [
         {
-          "id": "route",
-          "kind": "trace_exact",
-          "parts": [
-            "flow:loop-me"
-          ]
+          "id": "no-skill-loaded",
+          "kind": "skill_not_loaded"
         }
       ],
       "rubric": [
@@ -1247,16 +1805,22 @@
     {
       "id": 42,
       "name": "route-pr",
-      "prompt": "open a PR. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "prompt": "open a PR. Do not perform the workflow. Load the matching needquality skill and name it in one sentence.",
+      "skills": [
+        "needquality-ship"
+      ],
       "files": [],
       "critical": true,
       "checks": [
         {
-          "id": "route",
-          "kind": "trace_exact",
-          "parts": [
-            "flow:pr"
-          ]
+          "id": "loads-ship",
+          "kind": "skill_loaded",
+          "skill": "needquality-ship"
+        },
+        {
+          "id": "names-skill",
+          "kind": "response_contains",
+          "pattern": "needquality-ship"
         }
       ],
       "rubric": [
@@ -1269,16 +1833,22 @@
     {
       "id": 43,
       "name": "route-prototype",
-      "prompt": "build a throwaway prototype. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "prompt": "build a throwaway prototype. Do not perform the workflow. Load the matching needquality skill and name it in one sentence.",
+      "skills": [
+        "needquality-plan"
+      ],
       "files": [],
       "critical": true,
       "checks": [
         {
-          "id": "route",
-          "kind": "trace_exact",
-          "parts": [
-            "flow:prototype"
-          ]
+          "id": "loads-plan",
+          "kind": "skill_loaded",
+          "skill": "needquality-plan"
+        },
+        {
+          "id": "names-skill",
+          "kind": "response_contains",
+          "pattern": "needquality-plan"
         }
       ],
       "rubric": [
@@ -1291,16 +1861,22 @@
     {
       "id": 44,
       "name": "route-qa",
-      "prompt": "QA this user path. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "prompt": "QA this user path. Do not perform the workflow. Load the matching needquality skill and name it in one sentence.",
+      "skills": [
+        "needquality-test"
+      ],
       "files": [],
       "critical": true,
       "checks": [
         {
-          "id": "route",
-          "kind": "trace_exact",
-          "parts": [
-            "flow:qa"
-          ]
+          "id": "loads-test",
+          "kind": "skill_loaded",
+          "skill": "needquality-test"
+        },
+        {
+          "id": "names-skill",
+          "kind": "response_contains",
+          "pattern": "needquality-test"
         }
       ],
       "rubric": [
@@ -1313,16 +1889,22 @@
     {
       "id": 45,
       "name": "route-release",
-      "prompt": "cut a release. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "prompt": "cut a release. Do not perform the workflow. Load the matching needquality skill and name it in one sentence.",
+      "skills": [
+        "needquality-ship"
+      ],
       "files": [],
       "critical": true,
       "checks": [
         {
-          "id": "route",
-          "kind": "trace_exact",
-          "parts": [
-            "flow:release"
-          ]
+          "id": "loads-ship",
+          "kind": "skill_loaded",
+          "skill": "needquality-ship"
+        },
+        {
+          "id": "names-skill",
+          "kind": "response_contains",
+          "pattern": "needquality-ship"
         }
       ],
       "rubric": [
@@ -1335,16 +1917,22 @@
     {
       "id": 46,
       "name": "route-research",
-      "prompt": "research this using primary sources. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "prompt": "research this using primary sources. Do not perform the workflow. Load the matching needquality skill and name it in one sentence.",
+      "skills": [
+        "needquality-research"
+      ],
       "files": [],
       "critical": true,
       "checks": [
         {
-          "id": "route",
-          "kind": "trace_exact",
-          "parts": [
-            "flow:research"
-          ]
+          "id": "loads-research",
+          "kind": "skill_loaded",
+          "skill": "needquality-research"
+        },
+        {
+          "id": "names-skill",
+          "kind": "response_contains",
+          "pattern": "needquality-research"
         }
       ],
       "rubric": [
@@ -1357,16 +1945,22 @@
     {
       "id": 47,
       "name": "route-resolving-merge-conflicts",
-      "prompt": "resolve this merge conflict. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "prompt": "resolve this merge conflict. Do not perform the workflow. Load the matching needquality skill and name it in one sentence.",
+      "skills": [
+        "needquality-fix"
+      ],
       "files": [],
       "critical": true,
       "checks": [
         {
-          "id": "route",
-          "kind": "trace_exact",
-          "parts": [
-            "flow:resolving-merge-conflicts"
-          ]
+          "id": "loads-fix",
+          "kind": "skill_loaded",
+          "skill": "needquality-fix"
+        },
+        {
+          "id": "names-skill",
+          "kind": "response_contains",
+          "pattern": "needquality-fix"
         }
       ],
       "rubric": [
@@ -1379,16 +1973,22 @@
     {
       "id": 48,
       "name": "route-setup-ts-deep-modules",
-      "prompt": "setup-ts-deep-modules. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "prompt": "setup-ts-deep-modules. Do not perform the workflow. Load the matching needquality skill and name it in one sentence.",
+      "skills": [
+        "needquality-architecture"
+      ],
       "files": [],
       "critical": true,
       "checks": [
         {
-          "id": "route",
-          "kind": "trace_exact",
-          "parts": [
-            "flow:setup-ts-deep-modules"
-          ]
+          "id": "loads-architecture",
+          "kind": "skill_loaded",
+          "skill": "needquality-architecture"
+        },
+        {
+          "id": "names-skill",
+          "kind": "response_contains",
+          "pattern": "needquality-architecture"
         }
       ],
       "rubric": [
@@ -1401,16 +2001,22 @@
     {
       "id": 49,
       "name": "route-tdd",
-      "prompt": "use test-first TDD. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "prompt": "use test-first TDD. Do not perform the workflow. Load the matching needquality skill and name it in one sentence.",
+      "skills": [
+        "needquality-test"
+      ],
       "files": [],
       "critical": true,
       "checks": [
         {
-          "id": "route",
-          "kind": "trace_exact",
-          "parts": [
-            "flow:tdd"
-          ]
+          "id": "loads-test",
+          "kind": "skill_loaded",
+          "skill": "needquality-test"
+        },
+        {
+          "id": "names-skill",
+          "kind": "response_contains",
+          "pattern": "needquality-test"
         }
       ],
       "rubric": [
@@ -1422,17 +2028,15 @@
     },
     {
       "id": 50,
-      "name": "route-teach",
-      "prompt": "teach me this concept. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "name": "inactive-teach",
+      "prompt": "Teach me this concept: what is the Pythagorean theorem? Answer in one sentence.",
+      "skills": [],
       "files": [],
       "critical": true,
       "checks": [
         {
-          "id": "route",
-          "kind": "trace_exact",
-          "parts": [
-            "flow:teach"
-          ]
+          "id": "no-skill-loaded",
+          "kind": "skill_not_loaded"
         }
       ],
       "rubric": [
@@ -1444,17 +2048,15 @@
     },
     {
       "id": 51,
-      "name": "route-to-questionnaire",
-      "prompt": "turn this into a questionnaire. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "name": "inactive-questionnaire",
+      "prompt": "Turn this into a questionnaire for wedding guests: dietary needs, plus-one, song request. Answer in one short list.",
+      "skills": [],
       "files": [],
       "critical": true,
       "checks": [
         {
-          "id": "route",
-          "kind": "trace_exact",
-          "parts": [
-            "flow:to-questionnaire"
-          ]
+          "id": "no-skill-loaded",
+          "kind": "skill_not_loaded"
         }
       ],
       "rubric": [
@@ -1467,16 +2069,22 @@
     {
       "id": 52,
       "name": "route-to-spec",
-      "prompt": "write a spec. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "prompt": "write a spec. Do not perform the workflow. Load the matching needquality skill and name it in one sentence.",
+      "skills": [
+        "needquality-plan"
+      ],
       "files": [],
       "critical": true,
       "checks": [
         {
-          "id": "route",
-          "kind": "trace_exact",
-          "parts": [
-            "flow:to-spec"
-          ]
+          "id": "loads-plan",
+          "kind": "skill_loaded",
+          "skill": "needquality-plan"
+        },
+        {
+          "id": "names-skill",
+          "kind": "response_contains",
+          "pattern": "needquality-plan"
         }
       ],
       "rubric": [
@@ -1489,16 +2097,22 @@
     {
       "id": 53,
       "name": "route-to-tickets",
-      "prompt": "break this into tickets. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "prompt": "break this into tickets. Do not perform the workflow. Load the matching needquality skill and name it in one sentence.",
+      "skills": [
+        "needquality-plan"
+      ],
       "files": [],
       "critical": true,
       "checks": [
         {
-          "id": "route",
-          "kind": "trace_exact",
-          "parts": [
-            "flow:to-tickets"
-          ]
+          "id": "loads-plan",
+          "kind": "skill_loaded",
+          "skill": "needquality-plan"
+        },
+        {
+          "id": "names-skill",
+          "kind": "response_contains",
+          "pattern": "needquality-plan"
         }
       ],
       "rubric": [
@@ -1511,16 +2125,22 @@
     {
       "id": 54,
       "name": "route-tracker",
-      "prompt": "detect the issue tracker. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "prompt": "detect the issue tracker. Do not perform the workflow. Load the matching needquality skill and name it in one sentence.",
+      "skills": [
+        "needquality-plan"
+      ],
       "files": [],
       "critical": true,
       "checks": [
         {
-          "id": "route",
-          "kind": "trace_exact",
-          "parts": [
-            "flow:tracker"
-          ]
+          "id": "loads-plan",
+          "kind": "skill_loaded",
+          "skill": "needquality-plan"
+        },
+        {
+          "id": "names-skill",
+          "kind": "response_contains",
+          "pattern": "needquality-plan"
         }
       ],
       "rubric": [
@@ -1533,16 +2153,22 @@
     {
       "id": 55,
       "name": "route-triage",
-      "prompt": "triage these issues. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "prompt": "triage these issues. Do not perform the workflow. Load the matching needquality skill and name it in one sentence.",
+      "skills": [
+        "needquality-plan"
+      ],
       "files": [],
       "critical": true,
       "checks": [
         {
-          "id": "route",
-          "kind": "trace_exact",
-          "parts": [
-            "flow:triage"
-          ]
+          "id": "loads-plan",
+          "kind": "skill_loaded",
+          "skill": "needquality-plan"
+        },
+        {
+          "id": "names-skill",
+          "kind": "response_contains",
+          "pattern": "needquality-plan"
         }
       ],
       "rubric": [
@@ -1554,17 +2180,15 @@
     },
     {
       "id": 56,
-      "name": "route-wait-what",
-      "prompt": "wait what, re-pitch that. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "name": "inactive-wait-what",
+      "prompt": "Wait what, re-pitch that: explain compound interest again in one plain sentence.",
+      "skills": [],
       "files": [],
       "critical": true,
       "checks": [
         {
-          "id": "route",
-          "kind": "trace_exact",
-          "parts": [
-            "flow:wait-what"
-          ]
+          "id": "no-skill-loaded",
+          "kind": "skill_not_loaded"
         }
       ],
       "rubric": [
@@ -1577,16 +2201,22 @@
     {
       "id": 57,
       "name": "route-wayfinder",
-      "prompt": "wayfinder this huge effort. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "prompt": "wayfinder this huge effort. Do not perform the workflow. Load the matching needquality skill and name it in one sentence.",
+      "skills": [
+        "needquality-plan"
+      ],
       "files": [],
       "critical": true,
       "checks": [
         {
-          "id": "route",
-          "kind": "trace_exact",
-          "parts": [
-            "flow:wayfinder"
-          ]
+          "id": "loads-plan",
+          "kind": "skill_loaded",
+          "skill": "needquality-plan"
+        },
+        {
+          "id": "names-skill",
+          "kind": "response_contains",
+          "pattern": "needquality-plan"
         }
       ],
       "rubric": [
@@ -1599,16 +2229,22 @@
     {
       "id": 58,
       "name": "route-wizard",
-      "prompt": "make a wizard for provisioning secrets. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "prompt": "make a wizard for provisioning secrets. Do not perform the workflow. Load the matching needquality skill and name it in one sentence.",
+      "skills": [
+        "needquality-ops"
+      ],
       "files": [],
       "critical": true,
       "checks": [
         {
-          "id": "route",
-          "kind": "trace_exact",
-          "parts": [
-            "flow:wizard"
-          ]
+          "id": "loads-ops",
+          "kind": "skill_loaded",
+          "skill": "needquality-ops"
+        },
+        {
+          "id": "names-skill",
+          "kind": "response_contains",
+          "pattern": "needquality-ops"
         }
       ],
       "rubric": [
@@ -1620,17 +2256,15 @@
     },
     {
       "id": 59,
-      "name": "route-writing-beats",
-      "prompt": "shape these writing beats. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "name": "inactive-writing-beats",
+      "prompt": "Shape these writing beats for a short story about a lighthouse keeper into a one-sentence outline.",
+      "skills": [],
       "files": [],
       "critical": true,
       "checks": [
         {
-          "id": "route",
-          "kind": "trace_exact",
-          "parts": [
-            "flow:writing-beats"
-          ]
+          "id": "no-skill-loaded",
+          "kind": "skill_not_loaded"
         }
       ],
       "rubric": [
@@ -1643,16 +2277,22 @@
     {
       "id": 60,
       "name": "route-writing-for-agents",
-      "prompt": "write skill docs for agents. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "prompt": "write skill docs for agents. Do not perform the workflow. Load the matching needquality skill and name it in one sentence.",
+      "skills": [
+        "needquality-docs"
+      ],
       "files": [],
       "critical": true,
       "checks": [
         {
-          "id": "route",
-          "kind": "trace_exact",
-          "parts": [
-            "flow:writing-for-agents"
-          ]
+          "id": "loads-docs",
+          "kind": "skill_loaded",
+          "skill": "needquality-docs"
+        },
+        {
+          "id": "names-skill",
+          "kind": "response_contains",
+          "pattern": "needquality-docs"
         }
       ],
       "rubric": [
@@ -1664,17 +2304,15 @@
     },
     {
       "id": 61,
-      "name": "route-writing-fragments",
-      "prompt": "mine these writing fragments. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "name": "inactive-writing-fragments",
+      "prompt": "Mine these writing fragments about autumn into one sentence: cold mornings, red leaves, early dark.",
+      "skills": [],
       "files": [],
       "critical": true,
       "checks": [
         {
-          "id": "route",
-          "kind": "trace_exact",
-          "parts": [
-            "flow:writing-fragments"
-          ]
+          "id": "no-skill-loaded",
+          "kind": "skill_not_loaded"
         }
       ],
       "rubric": [
@@ -1686,17 +2324,15 @@
     },
     {
       "id": 62,
-      "name": "route-writing-shape",
-      "prompt": "turn these notes into writing shape. Route this request, but do not perform the workflow. Name the selected flow in one sentence.",
+      "name": "inactive-writing-shape",
+      "prompt": "Turn these travel notes into a one-sentence paragraph shape: arrived late, market at dawn, missed the train.",
+      "skills": [],
       "files": [],
       "critical": true,
       "checks": [
         {
-          "id": "route",
-          "kind": "trace_exact",
-          "parts": [
-            "flow:writing-shape"
-          ]
+          "id": "no-skill-loaded",
+          "kind": "skill_not_loaded"
         }
       ],
       "rubric": [
@@ -1707,13 +2343,34 @@
       ]
     },
     {
+      "id": 63,
       "name": "review-keeps-complete-findings",
       "prompt": "Review src/add.ts and report every actionable finding. Do not modify files.",
+      "skills": [
+        "needquality-review",
+        "needquality-javascript"
+      ],
       "files": [
         "evals/files/no-matt-docs/src/add.ts"
       ],
       "critical": true,
-      "checks": [],
+      "checks": [
+        {
+          "id": "loads-review",
+          "kind": "skill_loaded",
+          "skill": "needquality-review"
+        },
+        {
+          "id": "loads-javascript",
+          "kind": "skill_loaded",
+          "skill": "needquality-javascript"
+        },
+        {
+          "id": "empty-diff",
+          "kind": "diff_not_contains",
+          "pattern": "."
+        }
+      ],
       "rubric": [
         {
           "id": "complete-review",
@@ -1723,40 +2380,59 @@
           "id": "no-mutation",
           "text": "The final workspace diff is empty."
         }
-      ],
-      "id": 63
+      ]
     },
     {
+      "id": 64,
       "name": "stateful-call-preserves-evaluation",
       "prompt": "Clean up counter.py without changing behavior. The next_value call is stateful.",
+      "skills": [
+        "needquality-cleanup",
+        "needquality-python"
+      ],
       "files": [
         "evals/files/stateful-call/counter.py"
       ],
       "critical": true,
-      "checks": [],
+      "checks": [
+        {
+          "id": "loads-cleanup",
+          "kind": "skill_loaded",
+          "skill": "needquality-cleanup"
+        },
+        {
+          "id": "loads-python",
+          "kind": "skill_loaded",
+          "skill": "needquality-python"
+        }
+      ],
       "rubric": [
         {
           "id": "keeps-two-calls",
           "text": "The cleanup preserves two evaluations of next_value rather than binding one result."
         }
-      ],
-      "id": 64
+      ]
     },
     {
+      "id": 65,
       "name": "rls-default-deny-guidance",
       "prompt": "Harden this PostgreSQL design: RLS is enabled but the table has no policies. Explain the effective access and owner exceptions. Do not modify files.",
+      "skills": [
+        "needquality-trust",
+        "needquality-sql"
+      ],
       "files": [],
       "critical": true,
       "checks": [
         {
-          "id": "route",
-          "kind": "trace_exact",
-          "parts": [
-            "job:secure",
-            "load:sql",
-            "load:postgres",
-            "load:trust"
-          ]
+          "id": "loads-trust",
+          "kind": "skill_loaded",
+          "skill": "needquality-trust"
+        },
+        {
+          "id": "loads-sql",
+          "kind": "skill_loaded",
+          "skill": "needquality-sql"
         }
       ],
       "rubric": [
@@ -1768,22 +2444,22 @@
           "id": "owner-exceptions",
           "text": "Mentions table-owner or BYPASSRLS bypass and FORCE ROW LEVEL SECURITY."
         }
-      ],
-      "id": 65
+      ]
     },
     {
+      "id": 66,
       "name": "webhook-durable-acceptance",
       "prompt": "Harden a webhook endpoint. Give the safe processing order and keep slow work outside the request.",
+      "skills": [
+        "needquality-trust"
+      ],
       "files": [],
       "critical": true,
       "checks": [
         {
-          "id": "route",
-          "kind": "trace_exact",
-          "parts": [
-            "job:secure",
-            "load:trust"
-          ]
+          "id": "loads-trust",
+          "kind": "skill_loaded",
+          "skill": "needquality-trust"
         }
       ],
       "rubric": [
@@ -1795,12 +2471,13 @@
           "id": "async-idempotent",
           "text": "Moves slow work async and makes processing idempotent by event id."
         }
-      ],
-      "id": 66
+      ]
     },
     {
+      "id": 67,
       "name": "provider-controls-are-capability-gated",
       "prompt": "Explain how to cross a context boundary on an unknown agent host. Do not assume a vendor command exists.",
+      "skills": [],
       "files": [],
       "critical": true,
       "checks": [
@@ -1815,19 +2492,19 @@
           "id": "capability-gate",
           "text": "Describes host-native fresh-context, compaction, or handoff options without inventing support."
         }
-      ],
-      "id": 67
+      ]
     },
     {
       "id": 68,
       "name": "inactive-general-question",
       "prompt": "What is two plus two? Answer only the question.",
+      "skills": [],
       "files": [],
       "critical": true,
       "checks": [
         {
-          "id": "no-trace",
-          "kind": "trace_absent"
+          "id": "no-skill-loaded",
+          "kind": "skill_not_loaded"
         },
         {
           "id": "answer",
@@ -1846,13 +2523,22 @@
       "id": 69,
       "name": "technical-documentation-activates",
       "prompt": "Update the repository README for the new installer behavior. Route this request without modifying files, and name the selected job.",
+      "skills": [
+        "needquality-docs",
+        "needquality-ui"
+      ],
       "files": [],
       "critical": true,
       "checks": [
         {
-          "id": "route",
-          "kind": "trace_exact",
-          "parts": ["job:document", "load:copy"]
+          "id": "loads-docs",
+          "kind": "skill_loaded",
+          "skill": "needquality-docs"
+        },
+        {
+          "id": "loads-ui",
+          "kind": "skill_loaded",
+          "skill": "needquality-ui"
         }
       ],
       "rubric": [
@@ -1866,13 +2552,16 @@
       "id": 70,
       "name": "review-sequential-fallback",
       "prompt": "Run a two-axis review, but independent workers are unavailable. Route this request without reviewing, and explain the fallback in one sentence.",
+      "skills": [
+        "needquality-review"
+      ],
       "files": [],
       "critical": true,
       "checks": [
         {
-          "id": "route",
-          "kind": "trace_exact",
-          "parts": ["flow:code-review"]
+          "id": "loads-review",
+          "kind": "skill_loaded",
+          "skill": "needquality-review"
         }
       ],
       "rubric": [
@@ -1886,13 +2575,22 @@
       "id": 71,
       "name": "explicit-external-skill-composes",
       "prompt": "Use NeedQuality together with an explicitly requested external design skill to improve a landing page. Route only; do not modify files.",
+      "skills": [
+        "needquality-cleanup",
+        "needquality-ui"
+      ],
       "files": [],
       "critical": true,
       "checks": [
         {
-          "id": "route",
-          "kind": "trace_exact",
-          "parts": ["job:improve", "load:ui"]
+          "id": "loads-cleanup",
+          "kind": "skill_loaded",
+          "skill": "needquality-cleanup"
+        },
+        {
+          "id": "loads-ui",
+          "kind": "skill_loaded",
+          "skill": "needquality-ui"
         }
       ],
       "rubric": [
@@ -1906,13 +2604,16 @@
       "id": 72,
       "name": "handoff-uses-root-route",
       "prompt": "Prepare a handoff to another session. Route only; explain how the next session should resume without naming a child skill entrypoint.",
+      "skills": [
+        "needquality-ops"
+      ],
       "files": [],
       "critical": true,
       "checks": [
         {
-          "id": "route",
-          "kind": "trace_exact",
-          "parts": ["flow:handoff"]
+          "id": "loads-ops",
+          "kind": "skill_loaded",
+          "skill": "needquality-ops"
         },
         {
           "id": "no-child-skill",
@@ -1931,12 +2632,13 @@
       "id": 73,
       "name": "inactive-nontechnical-prose",
       "prompt": "Polish this wedding invitation sentence: We hope you can join us for dinner. Answer only with the revised sentence.",
+      "skills": [],
       "files": [],
       "critical": true,
       "checks": [
         {
-          "id": "no-trace",
-          "kind": "trace_absent"
+          "id": "no-skill-loaded",
+          "kind": "skill_not_loaded"
         },
         {
           "id": "no-web",
@@ -1955,15 +2657,16 @@
       "id": 74,
       "name": "design-sequential-fallback",
       "prompt": "Use the module-interface design flow, but independent workers are unavailable. Route this request without designing, and explain the fallback in one sentence.",
+      "skills": [
+        "needquality-architecture"
+      ],
       "files": [],
       "critical": true,
       "checks": [
         {
-          "id": "route",
-          "kind": "trace_exact",
-          "parts": [
-            "flow:codebase-design"
-          ]
+          "id": "loads-architecture",
+          "kind": "skill_loaded",
+          "skill": "needquality-architecture"
         }
       ],
       "rubric": [
@@ -1977,15 +2680,16 @@
       "id": 75,
       "name": "implement-spec-capability-fallback",
       "prompt": "Run implement-spec, but independent agents and isolated worktrees are unavailable. Route only; state the honest fallback without implementing.",
+      "skills": [
+        "needquality-implement"
+      ],
       "files": [],
       "critical": true,
       "checks": [
         {
-          "id": "route",
-          "kind": "trace_exact",
-          "parts": [
-            "flow:implement-spec"
-          ]
+          "id": "loads-implement",
+          "kind": "skill_loaded",
+          "skill": "needquality-implement"
         },
         {
           "id": "names-fallback",

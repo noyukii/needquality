@@ -18,22 +18,53 @@ from eval_schema import validate_baseline, validate_evals
 class EvalSchemaTests(unittest.TestCase):
     def valid_data(self) -> dict:
         return {
-            "version": 2,
+            "version": 3,
             "evals": [
                 {
                     "id": 1,
                     "name": "example-case",
                     "prompt": "Do the thing",
+                    "skills": [],
                     "files": [],
                     "critical": True,
-                    "checks": [{"id": "route", "kind": "trace_absent"}],
+                    "checks": [{"id": "route", "kind": "skill_not_loaded"}],
                     "rubric": [],
                 }
             ],
         }
 
-    def test_accepts_version_two(self) -> None:
+    def test_accepts_version_three_and_rejects_older(self) -> None:
         self.assertEqual(validate_evals(self.valid_data()), [])
+        data = self.valid_data()
+        data["version"] = 2
+        self.assertIn("version must be 3", validate_evals(data))
+
+    def test_skill_expectations_must_name_known_skills(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        data = self.valid_data()
+        case = data["evals"][0]
+        case["skills"] = ["needquality-implement", "needquality-nope"]
+        case["checks"] = [
+            {"id": "loads", "kind": "skill_loaded", "skill": "needquality-implement"},
+            {"id": "loads-missing", "kind": "skill_loaded", "skill": "needquality-nope"},
+            {"id": "skips", "kind": "skill_not_loaded", "skill": "not-a-skill"},
+        ]
+        errors = validate_evals(data, root)
+        self.assertIn("eval 1: unknown skill 'needquality-nope'", errors)
+        self.assertIn("eval 1: loads-missing requires a known skill", errors)
+        self.assertIn("eval 1: skips names an unknown skill", errors)
+        self.assertFalse(any("loads requires" in error for error in errors))
+        del case["skills"]
+        self.assertTrue(any("skills must be a list" in error for error in validate_evals(data)))
+
+    def test_diff_checks_require_patterns(self) -> None:
+        data = self.valid_data()
+        data["evals"][0]["checks"] = [
+            {"id": "diff", "kind": "diff_not_contains"},
+            {"id": "files", "kind": "no_new_files"},
+        ]
+        errors = validate_evals(data)
+        self.assertEqual(errors, ["eval 1: diff requires pattern"])
 
     def test_rejects_duplicate_assertion_ids_and_unsafe_paths(self) -> None:
         data = self.valid_data()
@@ -391,9 +422,10 @@ class EvalSchemaTests(unittest.TestCase):
             "id": 999,
             "name": "fake-judge",
             "prompt": "Do the task",
+            "skills": [],
             "files": [],
             "critical": True,
-            "checks": [{"id": "no-trace", "kind": "trace_absent"}],
+            "checks": [{"id": "no-skill", "kind": "skill_not_loaded"}],
             "rubric": [{"id": "quality", "text": "Good result"}],
         }
         with tempfile.TemporaryDirectory() as temp:
@@ -434,9 +466,10 @@ class EvalSchemaTests(unittest.TestCase):
             "id": 998,
             "name": "malformed",
             "prompt": "Do the task",
+            "skills": [],
             "files": [],
             "critical": True,
-            "checks": [{"id": "route", "kind": "trace_absent"}],
+            "checks": [{"id": "route", "kind": "skill_not_loaded"}],
             "rubric": [{"id": "quality", "text": "Good result"}],
         }
         with tempfile.TemporaryDirectory() as temp:
@@ -449,30 +482,65 @@ class EvalSchemaTests(unittest.TestCase):
         self.assertEqual(grade["status"], "INCONCLUSIVE")
         self.assertEqual([row["status"] for row in grade["results"]], ["INCONCLUSIVE", "INCONCLUSIVE"])
 
-    def test_trace_check_uses_exact_order(self) -> None:
+    def test_skill_loaded_reads_skill_files_from_tool_arguments(self) -> None:
+        read = evaluator.event(
+            "tool_call",
+            "stdout:1",
+            datetime.now(UTC).isoformat(),
+            tool="read",
+            arguments={"path": "/home/x/.cursor/skills/needquality-implement/SKILL.md"},
+        )
+        shell = evaluator.event(
+            "tool_call",
+            "stdout:2",
+            datetime.now(UTC).isoformat(),
+            tool="shell",
+            arguments={"command": "cat ~/.codex/skills/needquality-python/SKILL.md"},
+        )
+        self.assertEqual(
+            evaluator.skills_loaded([read, shell]),
+            ["needquality-implement", "needquality-python"],
+        )
         case = {
             "checks": [
-                {"id": "route", "kind": "trace_exact", "parts": ["job:implement", "load:python"]}
+                {"id": "loads", "kind": "skill_loaded", "skill": "needquality-implement"},
+                {"id": "misses", "kind": "skill_loaded", "skill": "needquality-review"},
+                {"id": "skips", "kind": "skill_not_loaded", "skill": "needquality-review"},
+                {"id": "none", "kind": "skill_not_loaded"},
             ]
         }
-        response = "`⚙︎ Used: job:implement · load:python`\nDone"
-        result = evaluator.deterministic_checks(case, Path.cwd(), response, [])
-        self.assertEqual(result[0]["status"], "PASS")
+        result = evaluator.deterministic_checks(case, Path.cwd(), "", [read, shell])
+        self.assertEqual([row["status"] for row in result], ["PASS", "FAIL", "PASS", "FAIL"])
+        quiet = evaluator.deterministic_checks(case, Path.cwd(), "", [])
+        self.assertEqual([row["status"] for row in quiet], ["FAIL", "FAIL", "PASS", "PASS"])
 
-    def test_trace_absent_rejects_unformatted_trace_marker(self) -> None:
-        case = {"checks": [{"id": "route", "kind": "trace_absent"}]}
-        for response in (
-            "⚙︎ Used: job:implement\nDone",
-            "⚙ Used: job:implement\nDone",
-            "⚙️ Used: job:implement\nDone",
-            "> `⚙︎ Used: job:implement`\nDone",
-            "- `⚙︎ Used: job:implement`\nDone",
-        ):
-            with self.subTest(response=response):
-                result = evaluator.deterministic_checks(
-                    case, Path.cwd(), response, []
-                )
-                self.assertEqual(result[0]["status"], "FAIL")
+    def test_skill_checks_are_inconclusive_without_complete_tool_evidence(self) -> None:
+        case = {"checks": [{"id": "none", "kind": "skill_not_loaded"}]}
+        result = evaluator.deterministic_checks(case, Path.cwd(), "", [], ["unrecognized tool-like record"])
+        self.assertEqual(result[0]["status"], "INCONCLUSIVE")
+
+    def test_diff_and_new_file_checks_read_the_workspace_diff(self) -> None:
+        case = {
+            "checks": [
+                {"id": "no-any", "kind": "diff_not_contains", "pattern": r"^\+.*as any"},
+                {"id": "adds-fn", "kind": "diff_contains", "pattern": r"^\+export function multiply"},
+                {"id": "no-new", "kind": "no_new_files"},
+            ]
+        }
+        diff = "+++ b/src/add.ts\n+export function multiply(a, b) {\n+  return (a as any) * b\n+}\n"
+        result = evaluator.deterministic_checks(case, Path.cwd(), "", [], diff=diff, new_files=["src/utils.ts"])
+        self.assertEqual([row["status"] for row in result], ["FAIL", "PASS", "FAIL"])
+        self.assertIn("src/utils.ts", result[2]["why"])
+        clean = evaluator.deterministic_checks(case, Path.cwd(), "", [], diff="+++ b/src/add.ts\n+export function multiply() {}\n")
+        self.assertEqual([row["status"] for row in clean], ["PASS", "PASS", "PASS"])
+
+    def test_added_files_are_detected_from_the_workspace(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            work = Path(temp)
+            (work / "src").mkdir()
+            (work / "src" / "add.ts").write_text("export {}\n", encoding="utf-8")
+            (work / "src" / "utils.ts").write_text("export {}\n", encoding="utf-8")
+            self.assertEqual(evaluator.added_files({"src/add.ts": "export {}\n"}, work), ["src/utils.ts"])
 
     def test_malformed_stream_is_detectable(self) -> None:
         events, final = evaluator.normalize_output("not json\n", "cursor")
@@ -481,24 +549,30 @@ class EvalSchemaTests(unittest.TestCase):
         self.assertEqual(final, "not json")
         self.assertTrue(any(event["type"] == "raw" for event in events))
 
-    def test_runtime_payload_rejects_symlinked_candidate_content(self) -> None:
+    def test_variant_files_reject_symlinked_candidate_content(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp) / "renamed-checkout"
-            root.mkdir()
-            (root / "SKILL.md").write_text(
-                "---\nname: needquality\ndescription: test\n---\n", encoding="utf-8"
+            root = Path(temp) / "checkout"
+            skill = root / "skills" / "needquality-demo"
+            skill.mkdir(parents=True)
+            (skill / "SKILL.md").write_text(
+                "---\nname: needquality-demo\ndescription: test\n---\n", encoding="utf-8"
             )
-            (root / "references").symlink_to(Path(temp), target_is_directory=True)
-            (root / "data").mkdir()
-            (root / "data" / "tells.csv").write_text("id,domain,tell,fix\n", encoding="utf-8")
-            (root / "scripts").mkdir()
-            (root / "scripts" / "lookup.py").write_text("", encoding="utf-8")
-            (root / "agents").mkdir()
-            (root / "agents" / "openai.yaml").write_text("", encoding="utf-8")
+            (skill / "references").symlink_to(Path(temp), target_is_directory=True)
             with self.assertRaisesRegex(ValueError, "symlink"):
-                evaluator.runtime_files(root)
+                evaluator.variant_files(root)
 
-    def test_captured_baseline_is_hash_valid_and_extractable(self) -> None:
+    def test_variant_files_install_each_skill_under_its_own_directory(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        destinations = {relative.parts[0] for _, relative in evaluator.variant_files(root)}
+        self.assertIn("needquality-implement", destinations)
+        self.assertIn("needquality-fix", destinations)
+        self.assertNotIn("needquality", destinations)
+        self.assertTrue(
+            any(relative == Path("needquality-fix") / "SKILL.md" for _, relative in evaluator.variant_files(root))
+        )
+        self.assertEqual(len(evaluator.variant_hash(root)), 64)
+
+    def test_captured_baseline_is_hash_valid_and_installs_as_legacy_monolith(self) -> None:
         root = Path(__file__).resolve().parents[1]
         self.assertEqual(validate_baseline(root), [])
         with tempfile.TemporaryDirectory() as temp:
@@ -506,7 +580,8 @@ class EvalSchemaTests(unittest.TestCase):
                 root / "evals" / "baseline-runtime.tar.gz", Path(temp)
             )
             self.assertTrue((extracted / "SKILL.md").is_file())
-            self.assertTrue(any(path.name == "SKILL.md" for path in extracted.rglob("SKILL.md")))
+            destinations = {relative.parts[0] for _, relative in evaluator.variant_files(extracted)}
+            self.assertEqual(destinations, {"needquality"})
 
     def test_baseline_rejects_special_archive_members(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
