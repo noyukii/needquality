@@ -6,6 +6,7 @@ import json
 import os
 import queue
 import re
+import signal
 import shutil
 import subprocess
 import tempfile
@@ -164,6 +165,7 @@ class ProviderAdapter:
                 stderr=subprocess.PIPE,
                 text=True,
                 bufsize=1,
+                start_new_session=os.name == "posix",
             )
         except OSError as error:
             return self.failed_result(command, started, started_at, error)
@@ -207,6 +209,8 @@ class ProviderAdapter:
                 if stderr_size < MAX_STDERR:
                     stderr.append(line[: MAX_STDERR - stderr_size])
                     stderr_size += len(stderr[-1])
+                return
+            if not line.strip():
                 return
             index += 1
             raw_ref = f"stdout:{index}"
@@ -282,11 +286,23 @@ class ProviderAdapter:
 
     @staticmethod
     def stop(process: subprocess.Popen) -> None:
-        process.terminate()
+        if os.name == "posix":
+            try:
+                os.killpg(process.pid, signal.SIGTERM)
+            except ProcessLookupError:
+                pass
+        else:
+            process.terminate()
         try:
             process.wait(timeout=2)
         except subprocess.TimeoutExpired:
-            process.kill()
+            if os.name == "posix":
+                try:
+                    os.killpg(process.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+            else:
+                process.kill()
             process.wait()
 
     @staticmethod
@@ -477,6 +493,12 @@ class CodexAdapter(ProviderAdapter):
                 errors.append(f"unrecognized Codex tool event type: {kind}")
             if kind in {"agent_message", "output_text"} and isinstance(item.get("text"), str):
                 texts.append(item["text"])
+        if (
+            not texts
+            and outer_kind in {"result", "response.completed", "turn.completed"}
+            and isinstance(payload.get("result"), str)
+        ):
+            texts.append(payload["result"])
         if not events:
             events.append(event(outer_kind, raw_ref, timestamp, status=payload.get("status")))
         return events, texts, errors

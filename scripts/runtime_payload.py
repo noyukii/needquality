@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import os
 import re
 from pathlib import Path
@@ -14,6 +15,7 @@ PAYLOAD = (
     "agents/openai.yaml",
 )
 OPTIONAL_PAYLOAD = {"agents/openai.yaml"}
+EXPECTED_SKILL_NAME = "needquality"
 SKILL_NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 
 
@@ -69,6 +71,8 @@ def skill_metadata(root: Path) -> dict[str, str]:
     name = fields.get("name", "")
     if not SKILL_NAME_RE.fullmatch(name):
         raise ValueError(f"invalid skill name: {name!r}")
+    if name != EXPECTED_SKILL_NAME:
+        raise ValueError(f"root skill name must be {EXPECTED_SKILL_NAME!r}, got {name!r}")
     if not fields.get("description"):
         raise ValueError("missing skill description")
     return fields
@@ -136,8 +140,6 @@ def runtime_files(root: Path, *, require_metadata: bool = True) -> dict[str, Pat
 
 
 def payload_hash(root: Path, *, require_metadata: bool = True) -> str:
-    import hashlib
-
     digest = hashlib.sha256()
     for rel, path in sorted(runtime_files(root, require_metadata=require_metadata).items()):
         digest.update(rel.encode("utf-8"))

@@ -104,6 +104,29 @@ description: test
             self.assertFalse(any("not-a-real-file" in error for error in errors))
             self.assertFalse(any("src/example.md" in error for error in errors))
 
+    def test_multiline_inline_code_does_not_create_reference_links(self) -> None:
+        errors: list[str] = []
+        targets = validate.document_targets(
+            "Prompt debris: `[Insert\nstatistic]`, `[Your Name]`, and `oaicite`.",
+            errors,
+            "example.md",
+        )
+        self.assertEqual(targets, [])
+        self.assertEqual(errors, [])
+
+    def test_unmatched_backtick_cannot_hide_links_in_later_paragraphs(self) -> None:
+        errors: list[str] = []
+        targets = validate.document_targets(
+            "An unmatched ` delimiter.\n"
+            "# A new block\n"
+            "[real link](missing.md)\n"
+            "A later `code span`.",
+            errors,
+            "example.md",
+        )
+        self.assertEqual(targets, ["missing.md"])
+        self.assertEqual(errors, [])
+
     def test_malformed_words_section_reports_error_without_crashing(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp) / "needquality"
@@ -150,6 +173,17 @@ description: test
                 validate.validate_routes(errors)
             self.assertTrue(any("malformed Words row" in error for error in errors))
             self.assertTrue(any("malformed Load row" in error for error in errors))
+
+    def test_missing_root_skill_reports_route_error_without_crashing(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "needquality"
+            root.mkdir()
+            errors: list[str] = []
+            with patch.object(validate, "ROOT", root):
+                jobs, flows = validate.validate_routes(errors)
+                validate.validate_portability(errors)
+            self.assertEqual((jobs, flows), (0, 0))
+            self.assertTrue(any("missing SKILL.md" in error for error in errors))
 
 
 if __name__ == "__main__":

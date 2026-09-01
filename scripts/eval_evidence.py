@@ -22,6 +22,14 @@ SECRET_PATTERNS = (
     re.compile(r"\bBearer\s+[A-Za-z0-9._~+/-]{12,}=*", re.I),
     re.compile(r"\b[a-z][a-z0-9+.-]*://[^\s/:@]+:[^\s/@]+@[^\s]+", re.I),
 )
+SECRET_ASSIGNMENT_PATTERNS = (
+    re.compile(
+        r"""(?im)(?P<prefix>\b(?:authorization|cookie|credential|password|passwd|secret|token|api[_-]?key|private[_-]?key)\b\s*(?:=|:)\s*)["'][^"'\r\n]{8,}["']"""
+    ),
+    re.compile(
+        r"(?im)(?P<prefix>\b(?:authorization|cookie|credential|password|passwd|secret|token|api[_-]?key|private[_-]?key)\b\s*(?:=|:)\s*)[^\s,;'\"\]}]{8,}"
+    ),
+)
 
 
 def environment_secrets(environment: dict[str, str] | None = None) -> list[str]:
@@ -41,6 +49,8 @@ def redact_text(value: str, environment: dict[str, str] | None = None) -> str:
     redacted = value
     for secret in environment_secrets(environment):
         redacted = redacted.replace(secret, "<redacted>")
+    for pattern in SECRET_ASSIGNMENT_PATTERNS:
+        redacted = pattern.sub(r"\g<prefix><redacted>", redacted)
     for pattern in SECRET_PATTERNS:
         redacted = pattern.sub("<redacted>", redacted)
     return redacted
@@ -61,6 +71,8 @@ def redact(value: Any, environment: dict[str, str] | None = None) -> Any:
             text = item
             for secret in secrets:
                 text = text.replace(secret, "<redacted>")
+            for pattern in SECRET_ASSIGNMENT_PATTERNS:
+                text = pattern.sub(r"\g<prefix><redacted>", text)
             for pattern in SECRET_PATTERNS:
                 text = pattern.sub("<redacted>", text)
             return text
