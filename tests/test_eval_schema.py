@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+import tarfile
 import tempfile
 import unittest
 from datetime import UTC, datetime
@@ -100,6 +101,17 @@ class EvalSchemaTests(unittest.TestCase):
         self.assertEqual(result[0]["status"], "INCONCLUSIVE")
         self.assertIsNone(result[0]["pass"])
 
+    def test_incomplete_tool_evidence_cannot_pass_tool_used(self) -> None:
+        result = evaluator.deterministic_checks(
+            {"checks": [{"id": "used-web", "kind": "tool_used", "tool": "web"}]},
+            Path.cwd(),
+            "",
+            [{"tool": "web"}],
+            ["unrecognized tool-like record"],
+        )
+        self.assertEqual(result[0]["status"], "INCONCLUSIVE")
+        self.assertIsNone(result[0]["pass"])
+
     def test_invalid_generic_tool_names_make_evidence_inconclusive(self) -> None:
         records = {
             "cursor": {"type": "tool_call", "tool_call": {"name": None}},
@@ -179,19 +191,26 @@ class EvalSchemaTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             with patch.dict("os.environ", {"SERVICE_TOKEN": "environment-secret-value-123"}, clear=False):
-                evaluator.save_text(root / "final.md", "sk-example-secret-123456789\n")
+                evaluator.save_text(
+                    root / "final.md",
+                    'api_key = "ordinary-fixture-secret-value"\n'
+                    "sk-example-secret-123456789\n",
+                )
                 evaluator.save_text(root / "diff.patch", "STRIPE_WEBHOOK_SECRET=whsec_abcdefghijklmnopqrstuvwxyz123456\n")
                 evaluator.save_json(root / "request.json", {"value": "environment-secret-value-123"})
                 evaluator.save_events(
                     root / "events.jsonl",
                     [{"arguments": {"authorization": "Bearer abcdefghijklmnopqrstuvwxyz"}}],
                 )
+                evaluator.save_text(root / "types.ts", "token: string;\n")
             persisted = "\n".join(path.read_text(encoding="utf-8") for path in root.iterdir())
         self.assertNotIn("sk-example-secret", persisted)
         self.assertNotIn("environment-secret-value", persisted)
+        self.assertNotIn("ordinary-fixture-secret-value", persisted)
         self.assertNotIn("abcdefghijklmnopqrstuvwxyz", persisted)
         self.assertNotIn("whsec_", persisted)
         self.assertIn("<redacted>", persisted)
+        self.assertIn("token: string;", persisted)
 
     def test_judge_requires_enforced_tool_free_mode(self) -> None:
         self.assertFalse(evaluator.adapter_for("cursor").supports_tool_free_judge)
@@ -252,6 +271,29 @@ class EvalSchemaTests(unittest.TestCase):
         self.assertEqual(errors, [])
         self.assertEqual([row["tool"] for row in events], ["shell", "web"])
 
+    def test_codex_extracts_top_level_final_result(self) -> None:
+        events, texts, errors = evaluator.adapter_for("codex").normalize_record(
+            {"type": "result", "result": "final answer"},
+            "stdout:9",
+            datetime.now(UTC).isoformat(),
+        )
+        self.assertEqual(errors, [])
+        self.assertEqual(texts, ["final answer"])
+        self.assertEqual(events[0]["type"], "result")
+
+    def test_codex_does_not_treat_tool_result_as_final_response(self) -> None:
+        _, texts, errors = evaluator.adapter_for("codex").normalize_record(
+            {
+                "type": "item.completed",
+                "item": {"type": "tool_result", "result": "internal tool output"},
+                "result": "internal tool output",
+            },
+            "stdout:10",
+            datetime.now(UTC).isoformat(),
+        )
+        self.assertTrue(errors)
+        self.assertEqual(texts, [])
+
     def test_streaming_runner_timestamps_events_and_times_out(self) -> None:
         class FakeAdapter(evaluator.ProviderAdapter):
             name = "fake"
@@ -287,6 +329,34 @@ class EvalSchemaTests(unittest.TestCase):
             self.assertTrue(timed["timed_out"])
             self.assertNotEqual(timed["returncode"], 0)
 
+    def test_streaming_runner_ignores_blank_jsonl_lines(self) -> None:
+        class FakeAdapter(evaluator.ProviderAdapter):
+            name = "fake"
+            executable = sys.executable
+
+            def build_command(self, prompt, cwd, model, mode):
+                script = (
+                    "import json; "
+                    "print(json.dumps({'type':'progress'})); "
+                    "print(); "
+                    "print(json.dumps({'type':'result','result':'done'}))"
+                )
+                return [sys.executable, "-u", "-c", script, prompt]
+
+            def normalize_record(self, payload, raw_ref, timestamp):
+                return (
+                    [evaluator.event(payload["type"], raw_ref, timestamp)],
+                    [payload["result"]] if isinstance(payload.get("result"), str) else [],
+                    [],
+                )
+
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            result = FakeAdapter().execute("task", root, root, None, 2)
+        self.assertFalse(result["malformed"])
+        self.assertEqual(result["final"], "done")
+        self.assertEqual(len(result["raw_events"]), 2)
+
     def test_judge_tool_event_is_inconclusive_and_attempt_evidence_is_redacted(self) -> None:
         class FakeJudgeAdapter(evaluator.ProviderAdapter):
             name = "claude"
@@ -296,10 +366,12 @@ class EvalSchemaTests(unittest.TestCase):
             def __init__(self):
                 self.prompts = []
                 self.workspaces = []
+                self.workspace_contents = []
 
             def build_command(self, prompt, cwd, model, mode):
                 self.prompts.append((mode, prompt))
-                self.workspaces.append((mode, cwd, sorted(Path(cwd).iterdir())))
+                self.workspaces.append((mode, cwd))
+                self.workspace_contents.append((mode, list(cwd.iterdir())))
                 if mode == "judge":
                     script = (
                         "import json; "
@@ -345,8 +417,7 @@ class EvalSchemaTests(unittest.TestCase):
         self.assertIn('"tool": "web"', persisted)
         self.assertNotIn("sk-example-secret", adapter.prompts[-1][1])
         self.assertNotEqual(adapter.workspaces[0][1], adapter.workspaces[-1][1])
-        self.assertEqual(adapter.workspaces[-1][0], "judge")
-        self.assertEqual(adapter.workspaces[-1][2], [])
+        self.assertEqual(adapter.workspace_contents[-1], ("judge", []))
 
     def test_malformed_task_attempt_grades_every_assertion_inconclusive(self) -> None:
         class MalformedAdapter(evaluator.ProviderAdapter):
@@ -426,6 +497,21 @@ class EvalSchemaTests(unittest.TestCase):
         result = evaluator.deterministic_checks(case, Path.cwd(), "Done", [], None, [])
         self.assertEqual(result[0]["status"], "INCONCLUSIVE")
 
+    def test_trace_absent_rejects_unformatted_trace_marker(self) -> None:
+        case = {"checks": [{"id": "route", "kind": "trace_absent"}]}
+        for response in (
+            "⚙︎ Used: job:implement\nDone",
+            "⚙ Used: job:implement\nDone",
+            "⚙️ Used: job:implement\nDone",
+            "> `⚙︎ Used: job:implement`\nDone",
+            "- `⚙︎ Used: job:implement`\nDone",
+        ):
+            with self.subTest(response=response):
+                result = evaluator.deterministic_checks(
+                    case, Path.cwd(), response, []
+                )
+                self.assertEqual(result[0]["status"], "FAIL")
+
     def test_malformed_stream_is_detectable(self) -> None:
         events, final = evaluator.normalize_output("not json\n", "cursor")
         self.assertEqual(events[0]["type"], "raw")
@@ -459,6 +545,17 @@ class EvalSchemaTests(unittest.TestCase):
             )
             self.assertTrue((extracted / "SKILL.md").is_file())
             self.assertTrue(any(path.name == "SKILL.md" for path in extracted.rglob("SKILL.md")))
+
+    def test_baseline_rejects_special_archive_members(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            archive = root / "unsafe.tar.gz"
+            with tarfile.open(archive, "w:gz") as bundle:
+                member = tarfile.TarInfo("pipe")
+                member.type = tarfile.FIFOTYPE
+                bundle.addfile(member)
+            with self.assertRaisesRegex(ValueError, "unsafe archive member"):
+                evaluator.extract_baseline(archive, root / "output")
 
 
 if __name__ == "__main__":

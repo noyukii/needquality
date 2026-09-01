@@ -58,9 +58,46 @@ FORBIDDEN_PORTABLE_TEXT = {
 }
 
 
+def strip_inline_code(block: str) -> str:
+    output: list[str] = []
+    index = 0
+    while index < len(block):
+        if block[index] != "`":
+            output.append(block[index])
+            index += 1
+            continue
+        end = index
+        while end < len(block) and block[end] == "`":
+            end += 1
+        delimiter = block[index:end]
+        closing = block.find(delimiter, end)
+        while closing >= 0 and (
+            (closing > 0 and block[closing - 1] == "`")
+            or (
+                closing + len(delimiter) < len(block)
+                and block[closing + len(delimiter)] == "`"
+            )
+        ):
+            closing = block.find(delimiter, closing + 1)
+        if closing < 0:
+            output.append(delimiter)
+            index = end
+            continue
+        output.append("\n" * block[end:closing].count("\n"))
+        index = closing + len(delimiter)
+    return "".join(output)
+
+
 def prose_without_code(text: str) -> str:
-    kept: list[str] = []
+    blocks: list[str] = []
+    current: list[str] = []
     fence: str | None = None
+
+    def flush() -> None:
+        if current:
+            blocks.append("\n".join(current))
+            current.clear()
+
     for line in text.splitlines():
         stripped = line.lstrip()
         marker = stripped[:3]
@@ -69,10 +106,20 @@ def prose_without_code(text: str) -> str:
                 fence = None
             continue
         if marker in {"```", "~~~"}:
+            flush()
             fence = marker
             continue
-        kept.append(re.sub(r"(?P<ticks>`+).*?(?P=ticks)", "", line))
-    return "\n".join(kept)
+        if not stripped:
+            flush()
+            continue
+        if current and re.match(
+            r"^(?:#{1,6}\s|>|[-+*]\s|\d+[.)]\s|\|)",
+            stripped,
+        ):
+            flush()
+        current.append(line)
+    flush()
+    return "\n\n".join(strip_inline_code(block) for block in blocks)
 
 
 def clean_link_target(target: str) -> str:
@@ -298,6 +345,12 @@ def validate_load_table(errors: list[str]) -> None:
 
 
 def validate_routes(errors: list[str]) -> tuple[int, int]:
+    root_skill = ROOT / "SKILL.md"
+    if not root_skill.is_file():
+        errors.append("routes: missing SKILL.md")
+        jobs = len(list((ROOT / "references" / "jobs").glob("*.md")))
+        flows = len(list((ROOT / "references" / "flows").glob("*.md")))
+        return jobs, flows
     rows = words_rows(errors)
     validate_load_table(errors)
     phrases: dict[str, str] = {}
@@ -405,6 +458,8 @@ def validate_metadata(errors: list[str]) -> None:
 def validate_portability(errors: list[str]) -> None:
     paths = [ROOT / "SKILL.md", *(ROOT / "references").rglob("*.md")]
     for path in paths:
+        if not path.is_file():
+            continue
         text = path.read_text(encoding="utf-8")
         for marker, label in FORBIDDEN_PORTABLE_TEXT.items():
             if marker in text:

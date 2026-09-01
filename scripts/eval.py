@@ -7,6 +7,7 @@ import argparse
 import concurrent.futures
 import difflib
 import hashlib
+import inspect
 import json
 import os
 import re
@@ -47,6 +48,7 @@ PROFILE_CUSTOMIZATIONS = (
     "CLAUDE.md",
 )
 TRACE_LINE_RE = re.compile(r"(?m)^\s*`⚙︎ Used: ([^`\n]+)`\s*$")
+TRACE_MARKER_RE = re.compile(r"(?i)⚙[\ufe0e\ufe0f]?\s+Used\s*:")
 REASONING_KEYS = {"thinking", "reasoning", "thought"}
 
 JUDGE_PROMPT = """Grade one agent attempt. Use only the supplied task, original files,
@@ -120,7 +122,14 @@ def extract_baseline(archive: Path, destination: Path) -> Path:
                 raise ValueError(f"unsafe path in baseline archive: {member.name}")
             if member.issym() or member.islnk():
                 raise ValueError(f"link in baseline archive: {member.name}")
-        bundle.extractall(destination)
+            if not member.isfile() and not member.isdir():
+                raise ValueError(f"unsafe archive member: {member.name}")
+        options = (
+            {"filter": "data"}
+            if "filter" in inspect.signature(bundle.extractall).parameters
+            else {}
+        )
+        bundle.extractall(destination, **options)
     runtime_files(destination, require_metadata=False)
     return destination
 
@@ -336,13 +345,13 @@ def deterministic_checks(
             why = f"trace {actual!r}; expected {check['parts']!r}"
         elif kind == "trace_absent":
             actual = trace_parts(response)
-            passed = actual is None and not TRACE_LINE_RE.search(response)
+            passed = actual is None and not TRACE_MARKER_RE.search(response)
             status = "PASS" if passed else "FAIL"
             why = "trace absent" if passed else f"trace present: {actual!r}"
         elif kind in {"tool_used", "tool_absent"}:
             wanted = canonical_tool(check["tool"])
             used = wanted in tools
-            if errors and (kind == "tool_absent" or not used):
+            if errors:
                 status = "INCONCLUSIVE"
                 why = f"tool evidence incomplete: {errors!r}; observed tools: {tools!r}"
             else:
@@ -414,6 +423,7 @@ def fixture_evidence(case: dict) -> list[dict]:
             "source": str(source.relative_to(ROOT)),
             "workspace_path": rel,
             "sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
+            "content": source.read_text(encoding="utf-8", errors="replace"),
         }
         for source, rel in case_files(ROOT, case)
     ]
@@ -486,6 +496,7 @@ def run_attempt(
                 "returncode": task["returncode"],
                 "timed_out": task["timed_out"],
                 "stderr": task["stderr"],
+                "normalization_errors": task["normalization_errors"],
             },
         )
         if task["returncode"] != 0 or task["timed_out"] or task["malformed"] or not task["final"]:
@@ -531,7 +542,19 @@ def run_attempt(
                 save_events(attempt_dir / "judge-raw-events.jsonl", judge["raw_events"])
                 save_events(attempt_dir / "judge-events.jsonl", judge["events"])
                 save_text(attempt_dir / "judge-final.md", judge["final"])
-                save_json(attempt_dir / "judge-timing.json", {key: judge[key] for key in ("seconds", "returncode", "timed_out", "stderr")})
+                save_json(
+                    attempt_dir / "judge-timing.json",
+                    {
+                        key: judge[key]
+                        for key in (
+                            "seconds",
+                            "returncode",
+                            "timed_out",
+                            "stderr",
+                            "normalization_errors",
+                        )
+                    },
+                )
                 try:
                     if judge["normalization_errors"]:
                         raise ValueError(
@@ -690,7 +713,11 @@ def smoke_runner(runner_name: str, profile: Path, candidate: Path, model: str | 
             save_json(target / "timing.json", {key: result[key] for key in ("seconds", "returncode", "timed_out", "stderr")})
             actual = trace_parts(result["final"])
             usable = result["returncode"] == 0 and not result["timed_out"] and not result["malformed"] and not result["normalization_errors"] and not diff_error and bool(result["final"])
-            passed = usable and not diff and (actual == expected if expected is not None else actual is None and not TRACE_LINE_RE.search(result["final"]))
+            passed = usable and not diff and (
+                actual == expected
+                if expected is not None
+                else actual is None and not TRACE_MARKER_RE.search(result["final"])
+            )
             rows.append({"name": name, "passed": passed, "expected": expected, "actual": actual, "returncode": result["returncode"], "status": "INCONCLUSIVE" if not usable else "PASSED" if passed else "FAILED"})
     status = "FAILED" if any(row["status"] == "FAILED" for row in rows) else "INCONCLUSIVE" if any(row["status"] == "INCONCLUSIVE" for row in rows) else "PASSED"
     return {"runner": runner_name, "status": status, "checks": rows}
