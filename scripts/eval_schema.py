@@ -8,6 +8,7 @@ import re
 from pathlib import Path
 
 TRACE_LABEL_RE = re.compile(r"^(?:job|flow|load):[a-z0-9-]+$")
+TRACE_PHASE_SEPARATOR = "‖"
 SLUG_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 CHECK_KINDS = {
     "path_exists",
@@ -16,6 +17,7 @@ CHECK_KINDS = {
     "file_not_contains",
     "response_contains",
     "response_not_contains",
+    "reasoning_contains",
     "trace_exact",
     "trace_absent",
     "tool_used",
@@ -27,6 +29,7 @@ PATTERN_KINDS = {
     "file_not_contains",
     "response_contains",
     "response_not_contains",
+    "reasoning_contains",
 }
 TOOL_KINDS = {"tool_used", "tool_absent"}
 
@@ -137,10 +140,25 @@ def validate_evals(data: object, root: Path | None = None) -> list[str]:
                 parts = check.get("parts")
                 if not isinstance(parts, list) or not parts:
                     errors.append(f"eval {cid}: {check_id} requires trace parts")
-                elif not all(isinstance(part, str) and TRACE_LABEL_RE.fullmatch(part) for part in parts):
+                elif not all(
+                    isinstance(part, str)
+                    and (part == TRACE_PHASE_SEPARATOR or TRACE_LABEL_RE.fullmatch(part))
+                    for part in parts
+                ):
                     errors.append(f"eval {cid}: {check_id} has invalid trace parts")
-                elif len(parts) != len(set(parts)):
-                    errors.append(f"eval {cid}: {check_id} trace parts must be unique")
+                elif (
+                    parts[0] == TRACE_PHASE_SEPARATOR
+                    or parts[-1] == TRACE_PHASE_SEPARATOR
+                    or any(
+                        first == second == TRACE_PHASE_SEPARATOR
+                        for first, second in zip(parts, parts[1:])
+                    )
+                ):
+                    errors.append(f"eval {cid}: {check_id} has a misplaced phase separator")
+                else:
+                    labels = [part for part in parts if part != TRACE_PHASE_SEPARATOR]
+                    if len(labels) != len(set(labels)):
+                        errors.append(f"eval {cid}: {check_id} trace parts must be unique")
             if kind in TOOL_KINDS and (
                 not isinstance(check.get("tool"), str) or not check["tool"].strip()
             ):

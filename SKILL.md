@@ -1,11 +1,12 @@
 ---
 name: needquality
 description: >
-  Route software engineering tasks to focused guidance for implementation,
-  debugging, code review, architecture, testing, delivery, technical research,
-  software documentation, UI/UX, trust boundaries, and agent-workflow design.
-  Use for repository work and technical artifacts; do not use for unrelated
-  general knowledge or non-technical prose polishing.
+  Route agent tasks to focused guidance for implementation, debugging,
+  code review, architecture, testing, delivery, technical research,
+  software documentation, UI/UX, trust boundaries, agent-workflow design,
+  structured writing, and teaching. Use for repository work, technical
+  artifacts, and the bundled writing and teaching flows; do not use for
+  unrelated general knowledge.
 ---
 
 # NeedQuality
@@ -36,12 +37,23 @@ inferred job. Within a category, match the longest explicit phrase,
 then fall back to a generic row. Select one primary job or flow and
 add matching Load references in table order. Compose multiple jobs or
 flows only when the user explicitly requests distinct operations.
+Composed jobs run as ordered phases: finish one job before starting
+the next, read each phase's references when that phase starts — not
+all upfront — and let the new phase's references replace the finished
+job's file as the governing guidance. The trace keeps every phase in
+selection order.
 Known limits: one-line `ceiling:` comment, not `TODO`. One slice:
 no sibling feature, next-step menu, or extra `SUMMARY.md`. Simple
 (one file, known helper): no plan.
 For complex work, use the host's planning facility. If none exists,
 keep the plan in the conversation or an OS-temporary artifact, never a
 tracked repository file. Keep the requested scope and reuse existing seams.
+
+The router is a map, not the guidance. Do not edit, judge, or claim
+from this file's summaries alone; quoting a table row is not reading
+its file. Before the first edit of a turn, every matched row's file
+has been read this turn. A matched file left unread is a routing
+failure: stop, read it, then continue.
 
 ## Capabilities
 
@@ -58,18 +70,32 @@ higher-priority host instructions normally.
 
 ## Trace
 
-When active, emit one compact Markdown code-span on the first line of
-the final response, after selected references have been read:
+When active, emit one compact Markdown code-span on the last line of
+the final response, after every selected reference has been read:
 
 `⚙︎ Used: job:implement · load:javascript · load:typescript`
 
-Use `job:<slug>` for the selected Words job, `flow:<slug>` for a
+Composed phases join with `‖`, each phase's job or flow first, then
+its loads:
+
+`⚙︎ Used: job:implement · load:ui ‖ job:document · load:copy`
+
+Use `job:<slug>` for each selected Words job, `flow:<slug>` for a
 selected flow, and `load:<slug>` for each successfully read Load
-reference. Preserve selection order and remove duplicates. Omit the
-root skill and exact paths. Omit unavailable references from the line
-and state the read failure in the normal response. Emit no trace for
-inactive question-only requests. This marker reports prompt-level
-routing, not hidden host telemetry.
+reference. Preserve selection order across phases and remove
+duplicates: a reference already listed in an earlier phase is not
+repeated. Omit the root skill and exact paths. Omit unavailable
+references from the line and state the read failure in the normal
+response. Emit no trace for inactive question-only requests. Exactly
+one `⚙︎ Used:` line per response; live flags never reuse that form.
+
+When the host shows reasoning or streams progress, flag each
+reference at the moment it is read — `⚙︎ Load: ui` — so the user can
+watch routing while the run is live. Flags belong in visible
+reasoning or a progress update, never as a second `⚙︎ Used:` line. A
+host that shows neither skips the flags; the final line still reports
+every load. This marker reports prompt-level routing, not hidden host
+telemetry.
 
 ## Research
 
@@ -101,6 +127,7 @@ when the request clearly asks for separate operations in the same slice.
 | simplify, simpler, less code | Shorter, same tests. Don't delete asked-for paths. | [simplify.md](references/jobs/simplify.md) |
 | implement, add, build, create | Ladder. One slice. | this file |
 | update, change, tweak | The named change only. Unnamed → one question. | this file |
+| upgrade deps, bump dependencies, update packages | One dependency per slice. Changelog before code; lockfile via the manager. | [deps.md](references/jobs/deps.md) |
 | secure, harden | The named boundary. | [trust.md](references/load/trust.md) |
 | commit, write a commit, git commit | Stage the named diff. Conventional message from this-turn status. Do not implement. | [commit.md](references/jobs/commit.md) |
 | open a PR, create a pull request, open an MR | One branch, body from this-turn diff, authorized provider interface. | [pr](references/flows/pr.md) |

@@ -18,7 +18,7 @@ class ValidationTests(unittest.TestCase):
         validate.validate_docs(errors)
         jobs, flows = validate.validate_routes(errors)
         validate.validate_portability(errors)
-        self.assertEqual((jobs, flows), (17, 35))
+        self.assertEqual((jobs, flows), (18, 35))
         self.assertEqual(errors, [])
 
     def test_portability_rejects_provider_commands_and_child_skill_language(self) -> None:
@@ -32,6 +32,22 @@ class ValidationTests(unittest.TestCase):
             with patch.object(validate, "ROOT", root):
                 validate.validate_portability(errors)
             self.assertEqual(len(errors), 3)
+
+    def test_tells_domain_vocabulary_is_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "data").mkdir()
+            (root / "data" / "tells.csv").write_text(
+                "id,domain,tell,fix\nreal,ui,tell,fix\ntypo,uii,tell,fix\n",
+                encoding="utf-8",
+            )
+            errors: list[str] = []
+            with patch.object(validate, "ROOT", root):
+                validate.validate_tells(errors)
+            self.assertTrue(any("unknown domains: uii" in error for error in errors))
+            self.assertTrue(
+                any("lookup.py domains with no rows" in error for error in errors)
+            )
 
     def test_frontmatter_rejects_duplicate_keys(self) -> None:
         _, errors = validate.frontmatter("---\nname: one\nname: two\ndescription: test\n---\n")

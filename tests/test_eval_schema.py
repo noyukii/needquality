@@ -459,6 +459,44 @@ class EvalSchemaTests(unittest.TestCase):
         result = evaluator.deterministic_checks(case, Path.cwd(), response, [])
         self.assertEqual(result[0]["status"], "PASS")
 
+    def test_trace_check_parses_phase_separators(self) -> None:
+        parts = ["job:implement", "load:ui", "‖", "job:document", "load:copy"]
+        case = {"checks": [{"id": "route", "kind": "trace_exact", "parts": parts}]}
+        response = "Done\n`⚙︎ Used: job:implement · load:ui ‖ job:document · load:copy`"
+        result = evaluator.deterministic_checks(case, Path.cwd(), response, [])
+        self.assertEqual(result[0]["status"], "PASS")
+        data = self.valid_data()
+        data["evals"][0]["checks"] = [{"id": "route", "kind": "trace_exact", "parts": parts}]
+        self.assertEqual(validate_evals(data), [])
+        data["evals"][0]["checks"] = [
+            {"id": "route", "kind": "trace_exact", "parts": ["‖", "job:document"]}
+        ]
+        errors = validate_evals(data)
+        self.assertTrue(any("misplaced phase separator" in error for error in errors))
+
+    def test_reasoning_check_reads_thinking_stream_or_is_inconclusive(self) -> None:
+        case = {
+            "checks": [
+                {"id": "flag", "kind": "reasoning_contains", "pattern": "⚙︎ Load: ui"}
+            ]
+        }
+        raw = [
+            {
+                "payload": {
+                    "type": "assistant",
+                    "message": {
+                        "content": [
+                            {"type": "thinking", "thinking": "⚙︎ Load: ui then edit"}
+                        ]
+                    },
+                }
+            }
+        ]
+        result = evaluator.deterministic_checks(case, Path.cwd(), "Done", [], None, raw)
+        self.assertEqual(result[0]["status"], "PASS")
+        result = evaluator.deterministic_checks(case, Path.cwd(), "Done", [], None, [])
+        self.assertEqual(result[0]["status"], "INCONCLUSIVE")
+
     def test_trace_absent_rejects_unformatted_trace_marker(self) -> None:
         case = {"checks": [{"id": "route", "kind": "trace_absent"}]}
         for response in (

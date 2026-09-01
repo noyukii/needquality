@@ -52,8 +52,8 @@ LIMIT 50;
 ```
 
 Don't mix dialects (`LIMIT` vs `TOP` vs `FETCH`) — match this file's
-engine. Phone/id stored as text compared to a number (`WHERE phone =
-5551234567`) skips the index. `GROUP BY customer_id` plus extra
+engine. Phone/id stored as text compared to a number
+(`WHERE phone = 5551234567`) skips the index. `GROUP BY customer_id` plus extra
 non-aggregated columns is not "latest row" — `DISTINCT ON` / window /
 `ORDER BY … LIMIT 1` per group.
 
