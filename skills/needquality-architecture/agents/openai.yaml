@@ -1,0 +1,6 @@
+interface:
+  display_name: "NeedQuality architecture"
+  short_description: "Deep modules and seams"
+  default_prompt: "Use $needquality-architecture for this task."
+policy:
+  allow_implicit_invocation: true

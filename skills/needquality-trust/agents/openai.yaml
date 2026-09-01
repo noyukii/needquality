@@ -1,0 +1,6 @@
+interface:
+  display_name: "NeedQuality trust"
+  short_description: "Trust-boundary rules for handlers and I/O"
+  default_prompt: "Use $needquality-trust for this task."
+policy:
+  allow_implicit_invocation: true

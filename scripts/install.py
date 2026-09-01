@@ -14,7 +14,13 @@ import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from runtime_payload import runtime_files, skill_name as payload_skill_name
+from runtime_payload import (
+    LEGACY_SKILL_NAME,
+    SKILL_PREFIX,
+    discover_skills,
+    runtime_files,
+    skill_name as payload_skill_name,
+)
 
 ROOT = Path(__file__).resolve().parent.parent
 MANIFEST_NAME = ".needquality-manifest.json"
@@ -46,12 +52,15 @@ def standard_roots() -> dict[str, Path]:
     }
 
 
-def skill_name() -> str:
-    return payload_skill_name(ROOT)
-
-
-def source_files() -> dict[str, Path]:
-    return runtime_files(ROOT)
+def skill_sources() -> dict[str, dict[str, Path]]:
+    """Map each bundled skill name to its runtime payload files."""
+    sources: dict[str, dict[str, Path]] = {}
+    for skill_root in discover_skills(ROOT):
+        name = payload_skill_name(skill_root)
+        if name in sources:
+            raise ValueError(f"duplicate skill name: {name}")
+        sources[name] = runtime_files(skill_root)
+    return sources
 
 
 def managed_relative(rel: str) -> Path:
@@ -61,7 +70,7 @@ def managed_relative(rel: str) -> Path:
     return relative
 
 
-def read_manifest(path: Path, *, legacy: bool = False) -> dict[str, str]:
+def read_manifest(path: Path, skill: str, *, legacy: bool = False) -> dict[str, str]:
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as error:
@@ -77,26 +86,32 @@ def read_manifest(path: Path, *, legacy: bool = False) -> dict[str, str]:
         raise ValueError(f"invalid manifest hashes: {path}")
     if legacy and payload.get("format", 1) != 1:
         raise ValueError(f"invalid manifest format: {path}")
-    if legacy and "skill" in payload and payload.get("skill") != skill_name():
+    if legacy and "skill" in payload and payload.get("skill") != skill:
         raise ValueError(f"invalid manifest identity: {path}")
-    if not legacy and (
-        payload.get("format") != 1 or payload.get("skill") != skill_name()
-    ):
+    if not legacy and (payload.get("format") != 1 or payload.get("skill") != skill):
         raise ValueError(f"invalid manifest identity: {path}")
     return files
 
 
-def previous_files(destination: Path) -> dict[str, str]:
+def previous_files(destination: Path, skill: str) -> dict[str, str]:
+    """Files a prior install of `skill` left at `destination`, keyed by hash.
+
+    Per-skill installs always carry a manifest; a missing manifest means a
+    fresh destination. The legacy single-skill install predates manifests, so
+    it falls back to the committed v1 manifest.
+    """
     manifest = destination / MANIFEST_NAME
     if manifest.is_symlink():
         raise ValueError(f"manifest is a symlink: {manifest}")
     if manifest.exists():
         if not manifest.is_file():
             raise ValueError(f"manifest is not a regular file: {manifest}")
-        return read_manifest(manifest)
+        return read_manifest(manifest, skill)
+    if skill != LEGACY_SKILL_NAME:
+        return {}
     if LEGACY_MANIFEST.is_symlink():
         raise ValueError(f"legacy manifest is a symlink: {LEGACY_MANIFEST}")
-    return read_manifest(LEGACY_MANIFEST, legacy=True)
+    return read_manifest(LEGACY_MANIFEST, skill, legacy=True)
 
 
 def safe_path(destination: Path, rel: str) -> Path:
@@ -208,10 +223,10 @@ def atomic_copy(source: Path, output: Path) -> None:
             temporary.unlink()
 
 
-def atomic_manifest(destination: Path, sources: dict[str, Path]) -> None:
+def atomic_manifest(destination: Path, skill: str, sources: dict[str, Path]) -> None:
     payload = {
         "format": 1,
-        "skill": skill_name(),
+        "skill": skill,
         "files": {rel: digest(path) for rel, path in sorted(sources.items())},
     }
     destination.mkdir(parents=True, exist_ok=True)
@@ -323,6 +338,7 @@ def recover_transactions(destination: Path, *, dry_run: bool = False) -> None:
 
 def sync(
     destination: Path,
+    skill: str,
     sources: dict[str, Path],
     previous: dict[str, str],
     drift: Drift,
@@ -417,7 +433,7 @@ def sync(
             for rel in removals:
                 outputs[rel].unlink()
                 prune_empty(outputs[rel].parent, destination)
-            atomic_manifest(destination, staged_sources)
+            atomic_manifest(destination, skill, staged_sources)
         except BaseException:
             try:
                 for rel, output in outputs.items():
@@ -450,9 +466,18 @@ def sync(
     return []
 
 
-def selected_destinations(args: argparse.Namespace) -> list[Path]:
+def has_needquality_install(root: Path) -> bool:
+    if not root.is_dir():
+        return False
+    if (root / LEGACY_SKILL_NAME).is_dir():
+        return True
+    return any(
+        entry.is_dir() and entry.name.startswith(SKILL_PREFIX) for entry in root.iterdir()
+    )
+
+
+def selected_roots(args: argparse.Namespace) -> list[Path]:
     roots = standard_roots()
-    name = skill_name()
     if args.root and (args.all or args.platform):
         raise ValueError("--root cannot be combined with --all or --platform")
     if args.root:
@@ -462,21 +487,45 @@ def selected_destinations(args: argparse.Namespace) -> list[Path]:
     elif args.all:
         selected = list(roots.values())
     else:
-        selected = [root for root in roots.values() if (root / name).is_dir()]
+        selected = [root for root in roots.values() if has_needquality_install(root)]
 
-    destinations: list[Path] = []
+    canonical_roots: list[Path] = []
     seen: set[Path] = set()
     for root in selected:
-        selected_root = root.expanduser().absolute()
-        unresolved_destination = selected_root / name
-        if unresolved_destination.is_symlink():
-            raise ValueError(f"destination is a symlink: {unresolved_destination}")
-        canonical = selected_root.resolve(strict=False) / name
+        canonical = root.expanduser().absolute().resolve(strict=False)
         if canonical in seen:
             continue
         seen.add(canonical)
-        destinations.append(canonical)
+        canonical_roots.append(canonical)
+    return canonical_roots
+
+
+def skill_destination(root: Path, name: str) -> Path:
+    destination = root / name
+    if destination.is_symlink():
+        raise ValueError(f"destination is a symlink: {destination}")
+    return destination
+
+
+def selected_destinations(args: argparse.Namespace, names: list[str]) -> list[tuple[str, Path]]:
+    destinations: list[tuple[str, Path]] = []
+    for root in selected_roots(args):
+        for name in names:
+            destinations.append((name, skill_destination(root, name)))
     return destinations
+
+
+def selected_skill_names(args: argparse.Namespace, available: list[str]) -> list[str]:
+    if not args.skill:
+        return available
+    names: list[str] = []
+    for value in args.skill:
+        name = value if value.startswith(SKILL_PREFIX) else SKILL_PREFIX + value
+        if name not in available:
+            raise ValueError(f"unknown skill: {value} (available: {', '.join(available)})")
+        if name not in names:
+            names.append(name)
+    return names
 
 
 def print_drift(destination: Path, drift: Drift) -> None:
@@ -486,8 +535,40 @@ def print_drift(destination: Path, drift: Drift) -> None:
             print(f"{singular}: {destination / rel}")
 
 
+def retire_legacy(root: Path, *, check: bool, force: bool) -> int:
+    """Remove an unmodified single-skill `needquality/` install left by v1/v2.
+
+    Managed files that still match their manifest hash are removed; locally
+    modified files stay behind as conflicts. Returns 0 when nothing remains,
+    1 when conflicts were left in place.
+    """
+    destination = skill_destination(root, LEGACY_SKILL_NAME)
+    if not destination.is_dir():
+        return 0
+    recover_transactions(destination, dry_run=check)
+    previous = previous_files(destination, LEGACY_SKILL_NAME)
+    drift = inspect(destination, {}, previous)
+    print_drift(destination, drift)
+    if check:
+        return 1 if drift.any() else 0
+    blocked = sync(destination, LEGACY_SKILL_NAME, {}, previous, drift, force)
+    if blocked:
+        print(f"legacy conflicts left unchanged in {destination}", file=sys.stderr)
+        return 1
+    manifest = destination / MANIFEST_NAME
+    leftovers = [entry for entry in destination.iterdir() if entry != manifest]
+    if leftovers:
+        print(f"legacy install kept (unmanaged files present): {destination}", file=sys.stderr)
+        return 1
+    if manifest.exists():
+        manifest.unlink()
+    destination.rmdir()
+    print(f"removed legacy install {destination}")
+    return 0
+
+
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Install or check the NeedQuality skill")
+    parser = argparse.ArgumentParser(description="Install or check the NeedQuality skills")
     parser.add_argument("--check", action="store_true", help="report drift, write nothing")
     parser.add_argument("--all", action="store_true", help="install into every standard root")
     parser.add_argument(
@@ -497,14 +578,21 @@ def main() -> int:
         help="install into one standard root",
     )
     parser.add_argument("--root", action="append", help="install into a custom skills root")
+    parser.add_argument(
+        "--skill",
+        action="append",
+        help="install only this skill (repeatable; the needquality- prefix is optional)",
+    )
     parser.add_argument("--force", action="store_true", help="replace modified manifest-managed files")
     args = parser.parse_args()
     if args.check and args.force:
         parser.error("--check cannot be combined with --force")
 
     try:
-        sources = source_files()
-        destinations = selected_destinations(args)
+        sources = skill_sources()
+        names = selected_skill_names(args, list(sources))
+        roots = selected_roots(args)
+        destinations = selected_destinations(args, names)
     except ValueError as error:
         print(error, file=sys.stderr)
         return 2
@@ -513,20 +601,27 @@ def main() -> int:
         return 2
 
     exit_code = 0
-    for destination in destinations:
+    for root in roots:
+        try:
+            exit_code = max(exit_code, retire_legacy(root, check=args.check, force=args.force))
+        except (OSError, ValueError) as error:
+            print(f"{root / LEGACY_SKILL_NAME}: {error}", file=sys.stderr)
+            exit_code = 2
+
+    for name, destination in destinations:
         try:
             recover_transactions(destination, dry_run=args.check)
-            previous = previous_files(destination)
-            drift = inspect(destination, sources, previous)
+            previous = previous_files(destination, name)
+            drift = inspect(destination, sources[name], previous)
             print_drift(destination, drift)
             if args.check:
                 if drift.any():
-                    exit_code = 1
+                    exit_code = max(exit_code, 1)
                 continue
-            blocked = sync(destination, sources, previous, drift, args.force)
+            blocked = sync(destination, name, sources[name], previous, drift, args.force)
             if blocked:
                 print(f"conflicts left unchanged in {destination}", file=sys.stderr)
-                exit_code = 1
+                exit_code = max(exit_code, 1)
                 continue
             count = sum(len(getattr(drift, label)) for label in ("missing", "changed", "stale", "conflicts"))
             print(f"synced {count} file(s) to {destination}")

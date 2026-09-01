@@ -1,0 +1,6 @@
+interface:
+  display_name: "NeedQuality php"
+  short_description: "PHP and Laravel patch rules"
+  default_prompt: "Use $needquality-php for this task."
+policy:
+  allow_implicit_invocation: true

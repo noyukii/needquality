@@ -1,0 +1,6 @@
+interface:
+  display_name: "NeedQuality docs"
+  short_description: "Docs and agent-facing writing"
+  default_prompt: "Use $needquality-docs for this task."
+policy:
+  allow_implicit_invocation: true

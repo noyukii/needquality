@@ -1,0 +1,6 @@
+interface:
+  display_name: "NeedQuality cleanup"
+  short_description: "Strip slop, refactor, simplify, optimize"
+  default_prompt: "Use $needquality-cleanup for this task."
+policy:
+  allow_implicit_invocation: true

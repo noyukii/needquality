@@ -1,0 +1,6 @@
+interface:
+  display_name: "NeedQuality zig"
+  short_description: "Zig patch rules"
+  default_prompt: "Use $needquality-zig for this task."
+policy:
+  allow_implicit_invocation: true

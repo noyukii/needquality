@@ -1,0 +1,6 @@
+interface:
+  display_name: "NeedQuality csharp"
+  short_description: "C# and ASP.NET Core patch rules"
+  default_prompt: "Use $needquality-csharp for this task."
+policy:
+  allow_implicit_invocation: true

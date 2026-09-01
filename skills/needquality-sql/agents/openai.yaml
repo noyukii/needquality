@@ -1,0 +1,6 @@
+interface:
+  display_name: "NeedQuality sql"
+  short_description: "Schema, query, and migration rules"
+  default_prompt: "Use $needquality-sql for this task."
+policy:
+  allow_implicit_invocation: true

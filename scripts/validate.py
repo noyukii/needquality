@@ -1,36 +1,44 @@
 #!/usr/bin/env python3
-"""Validate the NeedQuality source and installable skill shape. Stdlib only."""
+"""Validate the NeedQuality skill set and its installable shape. Stdlib only."""
 
 from __future__ import annotations
 
 import argparse
 import csv
+import importlib.util
 import json
-import os
 import re
 import sys
-from collections import defaultdict, deque
+from collections import defaultdict
+from dataclasses import dataclass, field
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
 from eval_schema import load_evals, validate_baseline, validate_evals
-from lookup import EXT_DOMAIN
-from runtime_payload import frontmatter, runtime_files
+from runtime_payload import (
+    SKILL_PREFIX,
+    SKILLS_DIR,
+    discover_skills,
+    frontmatter,
+    runtime_files,
+    skill_metadata,
+)
 
 ROOT = Path(__file__).resolve().parent.parent
 LINK_RE = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
 REFERENCE_LINK_RE = re.compile(r"!?\[([^\]]+)\]\[([^\]]*)\]")
 REFERENCE_DEFINITION_RE = re.compile(r"(?m)^ {0,3}\[([^\]]+)\]:\s*(\S+)")
-TABLE_LINK_RE = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
-RESEARCH_PATH = ROOT / "references" / "flows" / "research.md"
-EXPECTED_DESCRIPTION = (
-    "Route agent tasks to focused guidance for implementation, debugging, "
-    "code review, architecture, testing, delivery, technical research, "
-    "software documentation, UI/UX, trust boundaries, agent-workflow design, "
-    "structured writing, and teaching. Use for repository work, technical "
-    "artifacts, and the bundled writing and teaching flows; do not use for "
-    "unrelated general knowledge."
-)
+SKILL_MENTION_RE = re.compile(r"`(needquality-[a-z0-9-]+)`")
+QUOTED_PHRASE_RE = re.compile(r'"([^"]+)"')
+CONTRACT_PATH = ROOT / "shared" / "contract.md"
+RESEARCH_SKILL = "needquality-research"
+CLEANUP_SKILL = "needquality-cleanup"
+DESCRIPTION_MIN_CHARS = 50
+DESCRIPTION_MAX_CHARS = 1024
+SKILL_MAX_LINES = 500
+# Descriptions of every skill sit in context on every turn; keep the total
+# under a budget (chars / 4 as a token estimate).
+METADATA_TOKEN_BUDGET = 3200
 TELL_DOMAINS = {
     "agent",
     "copy",
@@ -55,7 +63,30 @@ FORBIDDEN_PORTABLE_TEXT = {
     "Model-invoked": "nested discovery terminology",
     "Do not load frontend-design": "external skill suppression",
     "Firecrawl skill is also loaded": "external skill precedence claim",
+    "Words table": "retired router vocabulary",
+    "Load table": "retired router vocabulary",
+    "$needquality": "retired router invocation",
 }
+OPENAI_METADATA_KEYS = (
+    "display_name:",
+    "short_description:",
+    "default_prompt:",
+    "allow_implicit_invocation:",
+)
+
+
+@dataclass
+class SkillReport:
+    name: str
+    description: str
+    root: Path
+    files: dict[str, Path] = field(default_factory=dict)
+    quoted_phrases: list[str] = field(default_factory=list)
+    mentions: set[str] = field(default_factory=set)
+
+    @property
+    def markdown(self) -> list[Path]:
+        return sorted(path for path in self.files.values() if path.suffix.lower() == ".md")
 
 
 def strip_inline_code(block: str) -> str:
@@ -180,222 +211,139 @@ def heading_anchors(text: str) -> set[str]:
     return anchors
 
 
-def reference_files(root: Path, errors: list[str]) -> list[Path]:
-    references = root / "references"
-    if not references.is_dir():
-        errors.append("references: missing directory")
-        return []
-    files: list[Path] = []
-    for current, directories, names in os.walk(references, topdown=True, followlinks=False):
-        parent = Path(current)
-        for name in [*directories, *names]:
-            path = parent / name
-            if path.is_symlink():
-                errors.append(f"references: symlink is not allowed: {path.relative_to(root)}")
-        directories[:] = [name for name in directories if not (parent / name).is_symlink()]
-        files.extend(
-            parent / name
-            for name in names
-            if name != ".DS_Store" and not (parent / name).is_symlink()
-        )
-    return sorted(files)
+def contract_text() -> str:
+    return CONTRACT_PATH.read_text(encoding="utf-8").strip()
 
 
-def validate_docs(errors: list[str]) -> int:
-    root_skill = ROOT / "SKILL.md"
-    if not root_skill.is_file():
-        errors.append("discovery: missing root SKILL.md")
-        return 0
-    references = reference_files(ROOT, errors)
-    markdown = [path for path in references if path.suffix.lower() == ".md"]
-    docs = [root_skill, *markdown]
-    root_resolved = ROOT.resolve()
-    graph: dict[Path, set[Path]] = defaultdict(set)
+def validate_skill(skill_root: Path, errors: list[str]) -> SkillReport | None:
+    label = skill_root.name
+    try:
+        fields = skill_metadata(skill_root)
+        files = runtime_files(skill_root)
+    except ValueError as error:
+        errors.append(f"{label}: {error}")
+        return None
+    report = SkillReport(fields["name"], fields["description"], skill_root, files)
+    skill_file = skill_root / "SKILL.md"
+    text = skill_file.read_text(encoding="utf-8")
 
-    skill_files = sorted(
-        path for path in ROOT.rglob("SKILL.md") if ".git" not in path.parts
-    )
-    if skill_files != [root_skill]:
-        shown = ", ".join(str(path.relative_to(ROOT)) for path in skill_files)
-        errors.append(f"discovery: expected only root SKILL.md, found {shown}")
+    description = report.description
+    if len(description) < DESCRIPTION_MIN_CHARS:
+        errors.append(f"{label}: description under {DESCRIPTION_MIN_CHARS} characters")
+    if len(description) > DESCRIPTION_MAX_CHARS:
+        errors.append(f"{label}: description over {DESCRIPTION_MAX_CHARS} characters")
+    if "Use when" not in description:
+        errors.append(f"{label}: description must state when to use it ('Use when ...')")
+    report.quoted_phrases = [phrase.strip().lower() for phrase in QUOTED_PHRASE_RE.findall(description)]
+    if len(text.splitlines()) > SKILL_MAX_LINES:
+        errors.append(f"{label}: SKILL.md over {SKILL_MAX_LINES} lines")
 
-    for path in docs:
-        text = path.read_text(encoding="utf-8")
-        for target in document_targets(text, errors, path.relative_to(ROOT).as_posix()):
+    nested = [rel for rel in files if rel != "SKILL.md" and Path(rel).name == "SKILL.md"]
+    for rel in nested:
+        errors.append(f"{label}: nested SKILL.md is not allowed: {rel}")
+
+    if CONTRACT_PATH.is_file() and contract_text() not in text:
+        errors.append(f"{label}: SKILL.md does not contain the shared contract block verbatim")
+
+    if not (skill_root / "agents" / "openai.yaml").is_file():
+        errors.append(f"{label}: missing agents/openai.yaml")
+    else:
+        metadata = (skill_root / "agents" / "openai.yaml").read_text(encoding="utf-8")
+        for key in OPENAI_METADATA_KEYS:
+            if key not in metadata:
+                errors.append(f"{label}: agents/openai.yaml missing {key}")
+
+    skill_resolved = skill_root.resolve()
+    linked_from_root: set[Path] = set()
+    for path in report.markdown:
+        doc_label = f"{label}/{path.relative_to(skill_root).as_posix()}"
+        doc_text = path.read_text(encoding="utf-8")
+        report.mentions.update(SKILL_MENTION_RE.findall(doc_text))
+        for marker, reason in FORBIDDEN_PORTABLE_TEXT.items():
+            if marker in doc_text:
+                errors.append(f"{doc_label}: {reason}: {marker}")
+        for target in document_targets(doc_text, errors, doc_label):
             try:
                 resolved = local_target(path, target)
             except ValueError as error:
-                errors.append(f"{path.relative_to(ROOT)}: {error}")
+                errors.append(f"{doc_label}: {error}")
                 continue
             if resolved is None:
                 continue
             try:
-                resolved.relative_to(root_resolved)
+                resolved.relative_to(skill_resolved)
             except ValueError:
-                errors.append(f"{path.relative_to(ROOT)}: link escapes skill: {target}")
+                errors.append(f"{doc_label}: link escapes skill: {target}")
                 continue
             if not resolved.exists():
-                errors.append(f"{path.relative_to(ROOT)}: missing link: {target}")
+                errors.append(f"{doc_label}: missing link: {target}")
                 continue
             if not resolved.is_file():
-                errors.append(f"{path.relative_to(ROOT)}: link is not a regular file: {target}")
+                errors.append(f"{doc_label}: link is not a regular file: {target}")
                 continue
             fragment = unquote(urlsplit(clean_link_target(target)).fragment)
             if fragment and resolved.suffix.lower() == ".md":
                 if fragment not in heading_anchors(resolved.read_text(encoding="utf-8")):
-                    errors.append(f"{path.relative_to(ROOT)}: missing fragment: {target}")
+                    errors.append(f"{doc_label}: missing fragment: {target}")
                     continue
-            graph[path.resolve()].add(resolved)
+            if path == skill_file:
+                linked_from_root.add(resolved)
 
-    reachable: set[Path] = set()
-    queue = deque([root_skill.resolve()])
-    while queue:
-        path = queue.popleft()
-        if path in reachable:
+    # Every bundled file is one link away from SKILL.md so a host that reads
+    # only the root still sees the whole skill.
+    for rel, path in files.items():
+        if rel == "SKILL.md" or rel.startswith("agents/"):
             continue
-        reachable.add(path)
-        queue.extend(graph[path] - reachable)
-    for path in references:
-        if path.resolve() not in reachable:
-            errors.append(f"references: unreachable from SKILL.md: {path.relative_to(ROOT)}")
-
-    fields, metadata_errors = frontmatter(root_skill.read_text(encoding="utf-8"))
-    errors.extend(f"SKILL.md: {error}" for error in metadata_errors)
-    if set(fields) != {"name", "description"}:
-        errors.append("SKILL.md: frontmatter keys must be exactly name and description")
-    if fields.get("name") != "needquality":
-        errors.append("SKILL.md: name must be 'needquality'")
-    if not fields.get("description"):
-        errors.append("SKILL.md: missing description")
-    elif fields["description"] != EXPECTED_DESCRIPTION:
-        errors.append("SKILL.md: description does not match the supported scope")
-    if len(root_skill.read_text(encoding="utf-8").splitlines()) > 500:
-        errors.append("SKILL.md: over 500 lines")
-    if len(fields.get("description", "")) > 1024:
-        errors.append("SKILL.md: description over 1024 characters")
-    return len(docs)
+        if path.resolve() not in linked_from_root:
+            errors.append(f"{label}: {rel} is not linked directly from SKILL.md")
+    return report
 
 
-def table_rows(
-    section: str,
-    label: str,
-    expected_header: list[str],
-    errors: list[str] | None,
-) -> list[list[str]]:
-    lines = [line for line in section.splitlines() if line.startswith("|")]
-    if len(lines) < 2:
-        if errors is not None:
-            errors.append(f"routes: missing {label} table")
-        return []
-    parsed = [[cell.strip() for cell in line.strip("|").split("|")] for line in lines]
-    if parsed[0] != expected_header and errors is not None:
+def validate_skill_set(reports: list[SkillReport], errors: list[str]) -> int:
+    names = {report.name for report in reports}
+    owners: dict[str, list[str]] = defaultdict(list)
+    for report in reports:
+        for phrase in report.quoted_phrases:
+            owners[phrase].append(report.name)
+        for mention in sorted(report.mentions):
+            if mention not in names:
+                errors.append(f"{report.name}: mentions unknown skill {mention}")
+    for phrase, skills in sorted(owners.items()):
+        if len(skills) > 1:
+            errors.append(f"trigger phrase {phrase!r} is claimed by {', '.join(sorted(skills))}")
+    metadata_chars = sum(len(report.name) + len(report.description) for report in reports)
+    metadata_tokens = metadata_chars // 4
+    if metadata_tokens > METADATA_TOKEN_BUDGET:
         errors.append(
-            f"routes: {label} header must be {' | '.join(expected_header)}"
+            f"skill metadata is ~{metadata_tokens} tokens; budget is {METADATA_TOKEN_BUDGET}"
         )
-    if len(parsed[1]) != len(expected_header) or not all(
-        re.fullmatch(r":?-{3,}:?", cell) for cell in parsed[1]
-    ):
-        if errors is not None:
-            errors.append(f"routes: malformed {label} table separator")
-    rows: list[list[str]] = []
-    for number, cells in enumerate(parsed[2:], 1):
-        if len(cells) != len(expected_header) or any(not cell for cell in cells):
-            if errors is not None:
-                errors.append(f"routes: malformed {label} row {number}: {lines[number + 1]}")
+    return metadata_tokens
+
+
+def validate_discovery(errors: list[str]) -> list[Path]:
+    try:
+        skills = discover_skills(ROOT)
+    except ValueError as error:
+        errors.append(f"discovery: {error}")
+        return []
+    allowed = {(skill / "SKILL.md").resolve() for skill in skills}
+    for path in ROOT.rglob("SKILL.md"):
+        if ".git" in path.parts:
             continue
-        rows.append(cells)
-    return rows
-
-
-def words_rows(errors: list[str] | None = None) -> list[tuple[str, str]]:
-    text = (ROOT / "SKILL.md").read_text(encoding="utf-8")
-    if "## Words" not in text or "## Load" not in text:
-        if errors is not None:
-            errors.append("routes: SKILL.md must contain Words and Load sections")
-        return []
-    after_words = text.split("## Words", 1)[1]
-    if "## Load" not in after_words:
-        if errors is not None:
-            errors.append("routes: Load must follow Words")
-        return []
-    section = after_words.split("## Load", 1)[0]
-    rows: list[tuple[str, str]] = []
-    for cells in table_rows(section, "Words", ["They say", "Do", "Read"], errors):
-        links = TABLE_LINK_RE.findall(cells[2])
-        root_owned = cells[2].strip().lower() == "this file"
-        if (len(links) != 1 and not root_owned) or (links and root_owned):
-            if errors is not None:
-                errors.append(
-                    f"routes: Words row must contain one target link or 'this file': {cells[0]}"
-                )
-        rows.append((cells[0], links[0] if links else ""))
-    return rows
-
-
-def validate_load_table(errors: list[str]) -> None:
-    text = (ROOT / "SKILL.md").read_text(encoding="utf-8")
-    match = re.search(r"(?ms)^## Load\s*$\n(.*?)(?=^## |\Z)", text)
-    if not match:
-        errors.append("routes: missing Load section")
-        return
-    rows = table_rows(match.group(1), "Load", ["Touching", "Read before editing"], errors)
-    for cells in rows:
-        if not TABLE_LINK_RE.search(cells[1]):
-            errors.append(f"routes: Load row has no reference link: {cells[0]}")
-
-
-def validate_routes(errors: list[str]) -> tuple[int, int]:
-    root_skill = ROOT / "SKILL.md"
-    if not root_skill.is_file():
-        errors.append("routes: missing SKILL.md")
-        jobs = len(list((ROOT / "references" / "jobs").glob("*.md")))
-        flows = len(list((ROOT / "references" / "flows").glob("*.md")))
-        return jobs, flows
-    rows = words_rows(errors)
-    validate_load_table(errors)
-    phrases: dict[str, str] = {}
-    targets: dict[str, list[str]] = defaultdict(list)
-    for phrase_cell, target in rows:
-        for phrase in phrase_cell.split(","):
-            normalized = re.sub(r"[`*]", "", phrase).strip().lower()
-            if not normalized:
-                continue
-            if normalized in phrases:
-                errors.append(
-                    f"routes: duplicate phrase {normalized!r} in {phrases[normalized]!r} and {phrase_cell!r}"
-                )
-            phrases[normalized] = phrase_cell
-        if target:
-            try:
-                canonical = (ROOT / clean_link_target(target)).resolve().relative_to(
-                    ROOT.resolve()
-                ).as_posix()
-            except (OSError, ValueError):
-                errors.append(f"routes: target escapes or is missing: {target}")
-            else:
-                targets[canonical].append(phrase_cell)
-
-    expected_jobs = {
-        path.relative_to(ROOT).as_posix() for path in (ROOT / "references" / "jobs").glob("*.md")
-    }
-    expected_flows = {
-        path.relative_to(ROOT).as_posix() for path in (ROOT / "references" / "flows").glob("*.md")
-    }
-    actual = set(targets)
-    for target in sorted(expected_jobs | expected_flows):
-        if target not in actual:
-            errors.append(f"routes: missing Words row for {target}")
-    for target, owners in targets.items():
-        if len(owners) > 1:
-            errors.append(f"routes: target {target} is owned by multiple rows: {owners}")
-    return len(expected_jobs), len(expected_flows)
+        if path.resolve() not in allowed:
+            errors.append(
+                f"discovery: SKILL.md outside {SKILLS_DIR}/<{SKILL_PREFIX}*>/: "
+                f"{path.relative_to(ROOT)}"
+            )
+    return skills
 
 
 def validate_research(errors: list[str]) -> None:
-    if not RESEARCH_PATH.is_file():
-        errors.append("research: missing references/flows/research.md")
+    path = ROOT / SKILLS_DIR / RESEARCH_SKILL / "SKILL.md"
+    if not path.is_file():
+        errors.append(f"research: missing {RESEARCH_SKILL}/SKILL.md")
         return
-    text = RESEARCH_PATH.read_text(encoding="utf-8")
+    text = path.read_text(encoding="utf-8")
     required = {
         "`L0`": "L0 level",
         "`L1`": "L1 level",
@@ -412,58 +360,54 @@ def validate_research(errors: list[str]) -> None:
             errors.append(f"research: missing {label}")
 
 
+def lookup_extension_domains() -> dict[str, tuple[str, ...]]:
+    """EXT_DOMAIN from the cleanup skill's bundled lookup script."""
+    path = ROOT / SKILLS_DIR / CLEANUP_SKILL / "scripts" / "lookup.py"
+    spec = importlib.util.spec_from_file_location("needquality_lookup", path)
+    if spec is None or spec.loader is None:
+        raise ValueError(f"cannot load {path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.EXT_DOMAIN
+
+
 def validate_tells(errors: list[str]) -> int:
-    path = ROOT / "data" / "tells.csv"
+    path = ROOT / SKILLS_DIR / CLEANUP_SKILL / "data" / "tells.csv"
+    if not path.is_file():
+        errors.append(f"tells: missing {CLEANUP_SKILL}/data/tells.csv")
+        return 0
     with path.open(newline="", encoding="utf-8") as handle:
         rows = list(csv.DictReader(handle))
     required = {"id", "domain", "tell", "fix"}
     headers = set(rows[0]) if rows else set()
     if headers != required:
-        errors.append("data/tells.csv: headers must be id, domain, tell, fix")
+        errors.append("tells.csv: headers must be id, domain, tell, fix")
     ids = [row.get("id", "") for row in rows]
     if len(ids) != len(set(ids)):
-        errors.append("data/tells.csv: duplicate id")
+        errors.append("tells.csv: duplicate id")
     if any(not all(row.get(key, "").strip() for key in required) for row in rows):
-        errors.append("data/tells.csv: blank field")
+        errors.append("tells.csv: blank field")
     domains = {row.get("domain", "") for row in rows}
     unknown = sorted(domains - TELL_DOMAINS - {""})
     if unknown:
-        errors.append(f"data/tells.csv: unknown domains: {', '.join(unknown)}")
-    mapped = {domain for values in EXT_DOMAIN.values() for domain in values}
+        errors.append(f"tells.csv: unknown domains: {', '.join(unknown)}")
+    try:
+        mapped = {domain for values in lookup_extension_domains().values() for domain in values}
+    except (OSError, ValueError, AttributeError) as error:
+        errors.append(f"tells.csv: cannot read lookup.py domains: {error}")
+        return len(rows)
     unmatched = sorted(mapped - domains)
     if unmatched:
-        errors.append(
-            f"data/tells.csv: lookup.py domains with no rows: {', '.join(unmatched)}"
-        )
+        errors.append(f"tells.csv: lookup.py domains with no rows: {', '.join(unmatched)}")
     return len(rows)
 
 
-def validate_metadata(errors: list[str]) -> None:
-    path = ROOT / "agents" / "openai.yaml"
-    required = {
-        'display_name: "NeedQuality"',
-        'short_description: "Route software work to focused quality guidance"',
-        'default_prompt: "Use $needquality to route this task and apply the smallest reliable workflow."',
-        "allow_implicit_invocation: true",
-    }
-    if not path.is_file():
-        errors.append("agents/openai.yaml: missing")
+def validate_contract_source(errors: list[str]) -> None:
+    if not CONTRACT_PATH.is_file():
+        errors.append("contract: missing shared/contract.md")
         return
-    text = path.read_text(encoding="utf-8")
-    for marker in required:
-        if marker not in text:
-            errors.append(f"agents/openai.yaml: missing {marker}")
-
-
-def validate_portability(errors: list[str]) -> None:
-    paths = [ROOT / "SKILL.md", *(ROOT / "references").rglob("*.md")]
-    for path in paths:
-        if not path.is_file():
-            continue
-        text = path.read_text(encoding="utf-8")
-        for marker, label in FORBIDDEN_PORTABLE_TEXT.items():
-            if marker in text:
-                errors.append(f"{path.relative_to(ROOT)}: {label}: {marker}")
+    if "## Contract" not in contract_text():
+        errors.append("contract: shared/contract.md must start with a '## Contract' heading")
 
 
 def validate_legacy_manifest(errors: list[str]) -> None:
@@ -476,8 +420,8 @@ def validate_legacy_manifest(errors: list[str]) -> None:
     files = payload.get("files") if isinstance(payload, dict) else None
     if payload.get("format") != 1 or not isinstance(files, dict) or not files:
         errors.append("legacy manifest: expected format 1 with files")
-    elif not any(rel.endswith("/SKILL.md") for rel in files):
-        errors.append("legacy manifest: missing nested flow entrypoints")
+    elif "SKILL.md" not in files:
+        errors.append("legacy manifest: missing the monolith root SKILL.md entry")
 
 
 def main() -> int:
@@ -485,16 +429,12 @@ def main() -> int:
     parser.add_argument("--stats", action="store_true", help="print inventory as JSON")
     args = parser.parse_args()
     errors: list[str] = []
-    try:
-        runtime_files(ROOT)
-    except ValueError as error:
-        errors.append(f"runtime payload: {error}")
-    docs = validate_docs(errors)
-    jobs, flows = validate_routes(errors)
+    validate_contract_source(errors)
+    skills = validate_discovery(errors)
+    reports = [report for skill in skills if (report := validate_skill(skill, errors))]
+    metadata_tokens = validate_skill_set(reports, errors)
     validate_research(errors)
     tells = validate_tells(errors)
-    validate_metadata(errors)
-    validate_portability(errors)
     validate_legacy_manifest(errors)
     eval_data = load_evals(ROOT / "evals" / "evals.json")
     errors.extend(validate_evals(eval_data, ROOT))
@@ -505,13 +445,22 @@ def main() -> int:
         for error in errors:
             print(f"  {error}", file=sys.stderr)
         return 1
-    stats = {"docs": docs, "jobs": jobs, "flows": flows, "tells": tells, "evals": evals}
+    docs = sum(len(report.markdown) for report in reports)
+    references = sum(len(report.files) - 1 for report in reports)
+    stats = {
+        "skills": len(reports),
+        "docs": docs,
+        "references": references,
+        "tells": tells,
+        "evals": evals,
+        "metadata_tokens": metadata_tokens,
+    }
     if args.stats:
         print(json.dumps(stats, sort_keys=True))
     else:
         print(
-            f"valid: {docs} docs, {jobs} jobs, {flows} flows, "
-            f"{tells} tells, {evals} evals"
+            f"valid: {len(reports)} skills, {docs} docs, {references} references, "
+            f"{tells} tells, {evals} evals, ~{metadata_tokens} metadata tokens"
         )
     return 0
 

@@ -1,0 +1,6 @@
+interface:
+  display_name: "NeedQuality plan"
+  short_description: "Grill, spec, tickets, tracker, triage"
+  default_prompt: "Use $needquality-plan for this task."
+policy:
+  allow_implicit_invocation: true

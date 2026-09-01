@@ -1,0 +1,6 @@
+interface:
+  display_name: "NeedQuality docker"
+  short_description: "Dockerfile and compose rules"
+  default_prompt: "Use $needquality-docker for this task."
+policy:
+  allow_implicit_invocation: true

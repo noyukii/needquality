@@ -1,0 +1,6 @@
+interface:
+  display_name: "NeedQuality review"
+  short_description: "Evidence-backed code review"
+  default_prompt: "Use $needquality-review for this task."
+policy:
+  allow_implicit_invocation: true

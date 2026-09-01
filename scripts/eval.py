@@ -19,15 +19,31 @@ from datetime import UTC, datetime
 from pathlib import Path
 from eval_adapters import ProviderAdapter, adapter_for, canonical_tool, event, now
 from eval_evidence import redact, save_events, save_json, save_text
-from eval_schema import TRACE_PHASE_SEPARATOR, case_files, load_evals, validate_baseline, validate_evals
-from runtime_payload import payload_hash, runtime_files as payload_runtime_files
+from eval_schema import case_files, load_evals, validate_baseline, validate_evals
+from runtime_payload import (
+    LEGACY_SKILL_NAME,
+    discover_skills,
+    runtime_files as skill_runtime_files,
+    skill_name,
+)
 
 ROOT = Path(__file__).resolve().parent.parent
 EVALS_PATH = ROOT / "evals" / "evals.json"
 RUNS_DIR = ROOT / "evals" / ".runs"
 BASELINE_ARCHIVE = ROOT / "evals" / "baseline-runtime.tar.gz"
 RUNNERS = ("cursor", "codex", "claude")
-HARNESS_VERSION = 3
+HARNESS_VERSION = 4
+# The committed baseline snapshot predates the split and installs as one skill.
+LEGACY_PAYLOAD = (
+    "SKILL.md",
+    "references",
+    "data/tells.csv",
+    "scripts/lookup.py",
+    "agents/openai.yaml",
+)
+SKILL_FILE_RE = re.compile(r"(needquality-[a-z0-9]+(?:-[a-z0-9]+)*)[/\\]SKILL\.md")
+SMOKE_SKILL = "needquality-review"
+REASONING_KEYS = {"thinking", "reasoning", "thought"}
 PROFILE_CUSTOMIZATIONS = (
     ".agents/skills",
     ".codex/skills",
@@ -47,10 +63,6 @@ PROFILE_CUSTOMIZATIONS = (
     "AGENTS.md",
     "CLAUDE.md",
 )
-TRACE_LINE_RE = re.compile(r"(?m)^\s*`⚙︎ Used: ([^`\n]+)`\s*$")
-TRACE_MARKER_RE = re.compile(r"(?i)⚙[\ufe0e\ufe0f]?\s+Used\s*:")
-REASONING_KEYS = {"thinking", "reasoning", "thought"}
-
 JUDGE_PROMPT = """Grade one agent attempt. Use only the supplied task, original files,
 final diff, final response, and normalized tool events. Tools are disabled. A rubric item
 passes only when the evidence plainly supports it. Missing evidence fails.
@@ -105,11 +117,59 @@ def normalize_output(stdout: str, runner: str) -> tuple[list[dict], str]:
     return events, final
 
 
-def runtime_files(skill: Path, *, require_metadata: bool = True) -> list[tuple[Path, Path]]:
-    return [
-        (path, Path(rel))
-        for rel, path in payload_runtime_files(skill, require_metadata=require_metadata).items()
-    ]
+def legacy_runtime_files(root: Path) -> dict[str, Path]:
+    files: dict[str, Path] = {}
+    for rel in LEGACY_PAYLOAD:
+        source = root / rel
+        if source.is_symlink():
+            raise ValueError(f"payload contains symlink: {source}")
+        if not source.exists():
+            continue
+        candidates = (
+            sorted(path for path in source.rglob("*") if path.is_file())
+            if source.is_dir()
+            else [source]
+        )
+        for path in candidates:
+            if path.is_symlink():
+                raise ValueError(f"payload contains symlink: {path}")
+            files[path.relative_to(root).as_posix()] = path
+    if "SKILL.md" not in files:
+        raise ValueError(f"legacy payload is missing SKILL.md: {root}")
+    return files
+
+
+def variant_files(root: Path) -> list[tuple[Path, Path]]:
+    """Every installable file of a variant with its destination under a skills root.
+
+    A current checkout installs one directory per skill under `skills/`; the
+    committed baseline is a pre-split monolith that installs as `needquality/`.
+    """
+    root = root.absolute()
+    if (root / "skills").is_dir():
+        files: list[tuple[Path, Path]] = []
+        for skill_root in discover_skills(root):
+            name = skill_name(skill_root)
+            files.extend(
+                (path, Path(name) / rel) for rel, path in skill_runtime_files(skill_root).items()
+            )
+        return files
+    if (root / "SKILL.md").is_file():
+        return [
+            (path, Path(LEGACY_SKILL_NAME) / rel)
+            for rel, path in legacy_runtime_files(root).items()
+        ]
+    raise ValueError(f"variant has neither skills/ nor a root SKILL.md: {root}")
+
+
+def variant_hash(root: Path) -> str:
+    digest = hashlib.sha256()
+    for source, relative in sorted(variant_files(root), key=lambda item: item[1].as_posix()):
+        digest.update(relative.as_posix().encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(source.read_bytes())
+        digest.update(b"\0")
+    return digest.hexdigest()
 
 
 def extract_baseline(archive: Path, destination: Path) -> Path:
@@ -130,7 +190,7 @@ def extract_baseline(archive: Path, destination: Path) -> Path:
             else {}
         )
         bundle.extractall(destination, **options)
-    runtime_files(destination, require_metadata=False)
+    variant_files(destination)
     return destination
 
 
@@ -176,10 +236,8 @@ def install_variant(home: Path, runner: str, skill: Path | None) -> None:
             path.unlink()
     if skill is None:
         return
-    destination = roots[runner] / "needquality"
-    require_metadata = (skill / "agents" / "openai.yaml").is_file()
-    for source, relative in runtime_files(skill, require_metadata=require_metadata):
-        output = destination / relative
+    for source, relative in variant_files(skill):
+        output = roots[runner] / relative
         output.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source, output)
 
@@ -223,6 +281,11 @@ def workspace_files(work: Path) -> tuple[dict[str, Path], set[str]]:
     return files, found_directories
 
 
+def added_files(original: dict[str, str], work: Path) -> list[str]:
+    current, _ = workspace_files(work)
+    return sorted(set(current) - set(original))
+
+
 def workspace_diff(original: dict[str, str], work: Path) -> str:
     current, current_directories = workspace_files(work)
     original_directories = {
@@ -253,12 +316,15 @@ def workspace_diff(original: dict[str, str], work: Path) -> str:
     return "".join(chunks)
 
 
-def trace_parts(response: str) -> list[str] | None:
-    matches = TRACE_LINE_RE.findall(response)
-    if len(matches) != 1:
-        return None
-    text = matches[0].replace(TRACE_PHASE_SEPARATOR, f"·{TRACE_PHASE_SEPARATOR}·")
-    return [part.strip() for part in text.split("·") if part.strip()]
+def skills_loaded(events: list[dict]) -> list[str]:
+    """Skill names whose SKILL.md appears in any tool argument of the run."""
+    found: set[str] = set()
+    for row in events:
+        if not row.get("tool"):
+            continue
+        blob = json.dumps(row.get("arguments"), ensure_ascii=False, default=str)
+        found.update(SKILL_FILE_RE.findall(blob))
+    return sorted(found)
 
 
 def reasoning_texts(raw_events: list[dict] | None) -> list[str]:
@@ -301,11 +367,15 @@ def deterministic_checks(
     response: str,
     events: list[dict],
     normalization_errors: list[str] | None = None,
+    diff: str = "",
+    new_files: list[str] | None = None,
     raw_events: list[dict] | None = None,
 ) -> list[dict]:
     results: list[dict] = []
     errors = normalization_errors or []
     tools = [str(row["tool"]) for row in events if row.get("tool")]
+    loaded = skills_loaded(events)
+    new_files = new_files or []
     for check in case.get("checks", []):
         kind = check["kind"]
         status = "FAIL"
@@ -338,16 +408,28 @@ def deterministic_checks(
                 matched = re.search(check["pattern"], "\n".join(texts), re.S) is not None
                 status = "PASS" if matched else "FAIL"
                 why = f"reasoning pattern {'matched' if matched else 'did not match'}"
-        elif kind == "trace_exact":
-            actual = trace_parts(response)
-            passed = actual == check["parts"]
+        elif kind in {"diff_contains", "diff_not_contains"}:
+            matched = re.search(check["pattern"], diff, re.M) is not None
+            passed = matched if kind == "diff_contains" else not matched
             status = "PASS" if passed else "FAIL"
-            why = f"trace {actual!r}; expected {check['parts']!r}"
-        elif kind == "trace_absent":
-            actual = trace_parts(response)
-            passed = actual is None and not TRACE_MARKER_RE.search(response)
+            why = f"diff pattern {'matched' if matched else 'did not match'}"
+        elif kind == "no_new_files":
+            passed = not new_files
             status = "PASS" if passed else "FAIL"
-            why = "trace absent" if passed else f"trace present: {actual!r}"
+            why = "no files added" if passed else f"files added: {new_files!r}"
+        elif kind in {"skill_loaded", "skill_not_loaded"}:
+            wanted = check.get("skill")
+            if errors:
+                status = "INCONCLUSIVE"
+                why = f"tool evidence incomplete: {errors!r}; skills loaded: {loaded!r}"
+            elif kind == "skill_loaded":
+                passed = wanted in loaded
+                status = "PASS" if passed else "FAIL"
+                why = f"skills loaded: {loaded!r}; expected {wanted}"
+            else:
+                passed = (wanted not in loaded) if wanted else not loaded
+                status = "PASS" if passed else "FAIL"
+                why = f"skills loaded: {loaded!r}; expected {'none' if not wanted else 'not ' + wanted}"
         elif kind in {"tool_used", "tool_absent"}:
             wanted = canonical_tool(check["tool"])
             used = wanted in tools
@@ -457,7 +539,6 @@ def run_attempt(
 
         with IsolatedHome(profile, runner.name, skill) as home:
             task = runner.execute(case["prompt"], work, home, model, timeout, mode="task")
-        require_metadata = bool(skill and (skill / "agents" / "openai.yaml").is_file())
         save_json(
             attempt_dir / "request.json",
             {
@@ -467,7 +548,7 @@ def run_attempt(
                 "prompt": case["prompt"],
                 "fixtures": fixture_evidence(case),
                 "variant": variant_name,
-                "skill_payload_sha256": payload_hash(skill, require_metadata=require_metadata) if skill else None,
+                "skill_payload_sha256": variant_hash(skill) if skill else None,
                 "runner": runner.name,
                 "runner_executable": runner.executable,
                 "runner_version": runner.version(),
@@ -484,8 +565,10 @@ def run_attempt(
         save_text(attempt_dir / "final.md", task["final"])
         try:
             diff = workspace_diff(original, work)
+            new_files = added_files(original, work)
         except ValueError as error:
             diff = ""
+            new_files = []
             task["malformed"] = True
             task["stderr"] = f"{task['stderr']}\n{error}".strip()
         save_text(attempt_dir / "diff.patch", diff)
@@ -505,7 +588,16 @@ def run_attempt(
             save_json(attempt_dir / "grade.json", grade)
             return grade
 
-        results = deterministic_checks(case, work, task["final"], task["events"], task["normalization_errors"], task["raw_events"])
+        results = deterministic_checks(
+            case,
+            work,
+            task["final"],
+            task["events"],
+            task["normalization_errors"],
+            diff=diff,
+            new_files=new_files,
+            raw_events=task["raw_events"],
+        )
         rubric = case.get("rubric", [])
         judge_seconds = 0.0
         if rubric:
@@ -687,7 +779,12 @@ def smoke_runner(runner_name: str, profile: Path, candidate: Path, model: str | 
     if not runner.available():
         return {"runner": runner_name, "status": "UNAVAILABLE", "reason": runner.unavailable_reason()}
     prompts = [
-        ("active", "Review the current workspace. Do not modify files; report only the route you selected.", ["job:review"]),
+        (
+            "active",
+            "Review the current workspace. Do not modify files; load the matching "
+            "needquality skill and report only which skill you used.",
+            SMOKE_SKILL,
+        ),
         ("inactive", "What is two plus two?", None),
     ]
     rows = []
@@ -711,12 +808,10 @@ def smoke_runner(runner_name: str, profile: Path, candidate: Path, model: str | 
             save_text(target / "diff.patch", diff)
             save_json(target / "request.json", {"harness_version": HARNESS_VERSION, "runner": runner_name, "runner_version": runner.version(), "model": model or "default", "timeout_seconds": timeout, "profile": profile.name, "prompt": prompt, "command": result["command"], "started_at": result["started_at"], "ended_at": result["ended_at"]})
             save_json(target / "timing.json", {key: result[key] for key in ("seconds", "returncode", "timed_out", "stderr")})
-            actual = trace_parts(result["final"])
+            actual = skills_loaded(result["events"])
             usable = result["returncode"] == 0 and not result["timed_out"] and not result["malformed"] and not result["normalization_errors"] and not diff_error and bool(result["final"])
             passed = usable and not diff and (
-                actual == expected
-                if expected is not None
-                else actual is None and not TRACE_MARKER_RE.search(result["final"])
+                expected in actual if expected is not None else not actual
             )
             rows.append({"name": name, "passed": passed, "expected": expected, "actual": actual, "returncode": result["returncode"], "status": "INCONCLUSIVE" if not usable else "PASSED" if passed else "FAILED"})
     status = "FAILED" if any(row["status"] == "FAILED" for row in rows) else "INCONCLUSIVE" if any(row["status"] == "INCONCLUSIVE" for row in rows) else "PASSED"
@@ -783,9 +878,9 @@ def main() -> int:
     else:
         baseline_temp = tempfile.TemporaryDirectory(prefix="needquality-baseline-")
         baseline = extract_baseline(BASELINE_ARCHIVE, Path(baseline_temp.name))
-    runtime_files(candidate)
+    variant_files(candidate)
     if baseline:
-        runtime_files(baseline, require_metadata=False)
+        variant_files(baseline)
     run_dir = RUNS_DIR / datetime.now(UTC).strftime("%Y%m%d-%H%M%S-%f")
     run_dir.mkdir(parents=True, exist_ok=False)
 
@@ -822,9 +917,9 @@ def main() -> int:
             "created_at": now(),
             "mode": "smoke" if args.smoke else "matrix" if args.matrix else "run",
             "candidate": str(candidate),
-            "candidate_payload_sha256": payload_hash(candidate),
+            "candidate_payload_sha256": variant_hash(candidate),
             "baseline": str(baseline) if baseline else "without-skill",
-            "baseline_payload_sha256": payload_hash(baseline, require_metadata=False) if baseline else None,
+            "baseline_payload_sha256": variant_hash(baseline) if baseline else None,
             "configuration": {"runners": runner_names, "model": args.model or "default", "timeout_seconds": args.timeout, "jobs": args.jobs, "repetitions": repetitions, "profiles": {name: profiles[name].name for name in profiles}},
             "results": results,
         },

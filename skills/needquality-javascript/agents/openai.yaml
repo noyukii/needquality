@@ -1,0 +1,6 @@
+interface:
+  display_name: "NeedQuality javascript"
+  short_description: "JavaScript and TypeScript patch rules"
+  default_prompt: "Use $needquality-javascript for this task."
+policy:
+  allow_implicit_invocation: true

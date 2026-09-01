@@ -1,0 +1,6 @@
+interface:
+  display_name: "NeedQuality ship"
+  short_description: "Commit, PR, changelog, release, rebase"
+  default_prompt: "Use $needquality-ship for this task."
+policy:
+  allow_implicit_invocation: true

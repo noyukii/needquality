@@ -7,8 +7,7 @@ import json
 import re
 from pathlib import Path
 
-TRACE_LABEL_RE = re.compile(r"^(?:job|flow|load):[a-z0-9-]+$")
-TRACE_PHASE_SEPARATOR = "‖"
+SKILL_NAME_RE = re.compile(r"^needquality-[a-z0-9]+(?:-[a-z0-9]+)*$")
 SLUG_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 CHECK_KINDS = {
     "path_exists",
@@ -18,8 +17,11 @@ CHECK_KINDS = {
     "response_contains",
     "response_not_contains",
     "reasoning_contains",
-    "trace_exact",
-    "trace_absent",
+    "diff_contains",
+    "diff_not_contains",
+    "no_new_files",
+    "skill_loaded",
+    "skill_not_loaded",
     "tool_used",
     "tool_absent",
 }
@@ -30,8 +32,11 @@ PATTERN_KINDS = {
     "response_contains",
     "response_not_contains",
     "reasoning_contains",
+    "diff_contains",
+    "diff_not_contains",
 }
 TOOL_KINDS = {"tool_used", "tool_absent"}
+SKILL_KINDS = {"skill_loaded", "skill_not_loaded"}
 
 
 def load_evals(path: Path) -> dict:
@@ -45,12 +50,18 @@ def safe_relative(value: object) -> bool:
     return not path.is_absolute() and ".." not in path.parts
 
 
+def known_skill(name: object, root: Path | None) -> bool:
+    if not isinstance(name, str) or not SKILL_NAME_RE.fullmatch(name):
+        return False
+    return root is None or (root / "skills" / name / "SKILL.md").is_file()
+
+
 def validate_evals(data: object, root: Path | None = None) -> list[str]:
     errors: list[str] = []
     if not isinstance(data, dict):
         return ["evaluation data must be an object"]
-    if data.get("version") != 2:
-        errors.append("version must be 2")
+    if data.get("version") != 3:
+        errors.append("version must be 3")
     cases = data.get("evals")
     if not isinstance(cases, list) or not cases:
         return [*errors, "evals must be a non-empty list"]
@@ -79,6 +90,16 @@ def validate_evals(data: object, root: Path | None = None) -> list[str]:
             errors.append(f"eval {cid}: missing prompt")
         if type(case.get("critical")) is not bool:
             errors.append(f"eval {cid}: critical must be boolean")
+
+        skills = case.get("skills")
+        if not isinstance(skills, list):
+            errors.append(f"eval {cid}: skills must be a list of expected skill names")
+        else:
+            for skill in skills:
+                if not known_skill(skill, root):
+                    errors.append(f"eval {cid}: unknown skill {skill!r}")
+            if len(skills) != len(set(skills)):
+                errors.append(f"eval {cid}: skills must be unique")
 
         files = case.get("files")
         if not isinstance(files, list):
@@ -136,29 +157,10 @@ def validate_evals(data: object, root: Path | None = None) -> list[str]:
                         re.compile(pattern)
                     except re.error as error:
                         errors.append(f"eval {cid}: {check_id} invalid pattern: {error}")
-            if kind == "trace_exact":
-                parts = check.get("parts")
-                if not isinstance(parts, list) or not parts:
-                    errors.append(f"eval {cid}: {check_id} requires trace parts")
-                elif not all(
-                    isinstance(part, str)
-                    and (part == TRACE_PHASE_SEPARATOR or TRACE_LABEL_RE.fullmatch(part))
-                    for part in parts
-                ):
-                    errors.append(f"eval {cid}: {check_id} has invalid trace parts")
-                elif (
-                    parts[0] == TRACE_PHASE_SEPARATOR
-                    or parts[-1] == TRACE_PHASE_SEPARATOR
-                    or any(
-                        first == second == TRACE_PHASE_SEPARATOR
-                        for first, second in zip(parts, parts[1:])
-                    )
-                ):
-                    errors.append(f"eval {cid}: {check_id} has a misplaced phase separator")
-                else:
-                    labels = [part for part in parts if part != TRACE_PHASE_SEPARATOR]
-                    if len(labels) != len(set(labels)):
-                        errors.append(f"eval {cid}: {check_id} trace parts must be unique")
+            if kind == "skill_loaded" and not known_skill(check.get("skill"), root):
+                errors.append(f"eval {cid}: {check_id} requires a known skill")
+            if kind == "skill_not_loaded" and "skill" in check and not known_skill(check["skill"], root):
+                errors.append(f"eval {cid}: {check_id} names an unknown skill")
             if kind in TOOL_KINDS and (
                 not isinstance(check.get("tool"), str) or not check["tool"].strip()
             ):
