@@ -18,7 +18,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from eval_adapters import ProviderAdapter, adapter_for, canonical_tool, event, now
 from eval_evidence import redact, save_events, save_json, save_text
-from eval_schema import case_files, load_evals, validate_baseline, validate_evals
+from eval_schema import TRACE_PHASE_SEPARATOR, case_files, load_evals, validate_baseline, validate_evals
 from runtime_payload import payload_hash, runtime_files as payload_runtime_files
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -47,6 +47,7 @@ PROFILE_CUSTOMIZATIONS = (
     "CLAUDE.md",
 )
 TRACE_LINE_RE = re.compile(r"(?m)^\s*`⚙︎ Used: ([^`\n]+)`\s*$")
+REASONING_KEYS = {"thinking", "reasoning", "thought"}
 
 JUDGE_PROMPT = """Grade one agent attempt. Use only the supplied task, original files,
 final diff, final response, and normalized tool events. Tools are disabled. A rubric item
@@ -247,7 +248,32 @@ def trace_parts(response: str) -> list[str] | None:
     matches = TRACE_LINE_RE.findall(response)
     if len(matches) != 1:
         return None
-    return [part.strip() for part in matches[0].split("·")]
+    text = matches[0].replace(TRACE_PHASE_SEPARATOR, f"·{TRACE_PHASE_SEPARATOR}·")
+    return [part.strip() for part in text.split("·") if part.strip()]
+
+
+def reasoning_texts(raw_events: list[dict] | None) -> list[str]:
+    texts: list[str] = []
+
+    def walk(node: object) -> None:
+        if isinstance(node, dict):
+            for key, value in node.items():
+                if key in REASONING_KEYS and isinstance(value, str):
+                    texts.append(value)
+                else:
+                    walk(value)
+            if str(node.get("type", "")) in REASONING_KEYS:
+                for key in ("text", "summary", "content"):
+                    value = node.get(key)
+                    if isinstance(value, str):
+                        texts.append(value)
+        elif isinstance(node, list):
+            for item in node:
+                walk(item)
+
+    for row in raw_events or []:
+        walk(row.get("payload"))
+    return texts
 
 
 def result_row(item_id: str, status: str, why: str, kind: str) -> dict:
@@ -266,6 +292,7 @@ def deterministic_checks(
     response: str,
     events: list[dict],
     normalization_errors: list[str] | None = None,
+    raw_events: list[dict] | None = None,
 ) -> list[dict]:
     results: list[dict] = []
     errors = normalization_errors or []
@@ -293,6 +320,15 @@ def deterministic_checks(
             passed = matched if kind == "response_contains" else not matched
             status = "PASS" if passed else "FAIL"
             why = f"response pattern {'matched' if matched else 'did not match'}"
+        elif kind == "reasoning_contains":
+            texts = reasoning_texts(raw_events)
+            if not texts:
+                status = "INCONCLUSIVE"
+                why = "runner exposed no reasoning stream"
+            else:
+                matched = re.search(check["pattern"], "\n".join(texts), re.S) is not None
+                status = "PASS" if matched else "FAIL"
+                why = f"reasoning pattern {'matched' if matched else 'did not match'}"
         elif kind == "trace_exact":
             actual = trace_parts(response)
             passed = actual == check["parts"]
@@ -458,7 +494,7 @@ def run_attempt(
             save_json(attempt_dir / "grade.json", grade)
             return grade
 
-        results = deterministic_checks(case, work, task["final"], task["events"], task["normalization_errors"])
+        results = deterministic_checks(case, work, task["final"], task["events"], task["normalization_errors"], task["raw_events"])
         rubric = case.get("rubric", [])
         judge_seconds = 0.0
         if rubric:
