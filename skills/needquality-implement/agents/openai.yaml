@@ -1,0 +1,6 @@
+interface:
+  display_name: "NeedQuality implement"
+  short_description: "Smallest defensible code change, proven fresh"
+  default_prompt: "Use $needquality-implement for this task."
+policy:
+  allow_implicit_invocation: true

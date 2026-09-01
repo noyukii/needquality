@@ -125,7 +125,7 @@ User invokes with a map (URL or number). A ticket is **optional**: without one, 
 1. Load the **map**: the low-res view, not every ticket body.
 2. Choose the ticket. If the user named one, use it. Otherwise take the first frontier ticket in order. **Claim it**: assign it to yourself before any work.
 3. Resolve it. **Zoom as needed**: fetch the full body of any related or closed
-   ticket on demand; invoke `$needquality` and read the root-routed reference
+   ticket on demand; load the needquality skill that owns the reference
    named by the `## Notes` block (`tdd` → the `needquality-test` skill's tdd
    reference, and likewise for other flow slugs). Missing name → [grilling](grilling.md) and
    [domain-modeling](domain-modeling.md).

@@ -1,0 +1,6 @@
+interface:
+  display_name: "NeedQuality go"
+  short_description: "Go patch rules"
+  default_prompt: "Use $needquality-go for this task."
+policy:
+  allow_implicit_invocation: true

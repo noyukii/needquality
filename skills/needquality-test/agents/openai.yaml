@@ -1,0 +1,6 @@
+interface:
+  display_name: "NeedQuality test"
+  short_description: "Tests at public seams, TDD, QA pass"
+  default_prompt: "Use $needquality-test for this task."
+policy:
+  allow_implicit_invocation: true

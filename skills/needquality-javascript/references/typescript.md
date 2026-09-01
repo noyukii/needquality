@@ -102,5 +102,5 @@ Next.js `export const config = { matcher }` only routes traffic.
 Client-writable metadata is not a role. RLS: `USING (true)` or no
 policy are not equivalent. `USING (true)` grants broad access for the
 policy's commands and roles; enabled RLS with no applicable policy is
-default-deny, subject to table-owner and `BYPASSRLS` exceptions. See
-[trust.md](trust.md#row-level-security-postgres).
+default-deny, subject to table-owner and `BYPASSRLS` exceptions. See the
+`needquality-trust` skill, section "Row-level security (Postgres)".

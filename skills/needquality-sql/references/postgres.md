@@ -25,7 +25,8 @@ commands and roles; it is not the same as having no applicable policy.
 With RLS enabled, no applicable policy means default-deny. Table owners
 normally bypass RLS unless `FORCE ROW LEVEL SECURITY` applies, and roles
 with `BYPASSRLS` bypass it. Tenant and owner come from `auth.uid()` or
-the session — not a client-supplied id. See [trust.md](trust.md#row-level-security-postgres).
+the session — not a client-supplied id. See the `needquality-trust` skill,
+section "Row-level security (Postgres)".
 
 ## Locks
 

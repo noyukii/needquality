@@ -1,0 +1,6 @@
+interface:
+  display_name: "NeedQuality ui"
+  short_description: "Web interface and copy rules"
+  default_prompt: "Use $needquality-ui for this task."
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,6 @@
+interface:
+  display_name: "NeedQuality fix"
+  short_description: "Reproduce, root-cause patch, re-run red"
+  default_prompt: "Use $needquality-fix for this task."
+policy:
+  allow_implicit_invocation: true

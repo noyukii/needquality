@@ -38,9 +38,9 @@ Every claim names a checkable artifact from this turn: a diff, a command with it
   add one assertion first.
 - Trust-boundary validation and authorization stay. Ugly nearby code has a
   reason; read it before reshaping it.
-- Large diff: run `python scripts/lookup.py --ext <ext>` from this skill
-  directory for a fingerprint of known slop tells
-  ([tells.csv](data/tells.csv)); a one-file logic patch skips it.
+- Large diff: run [lookup.py](scripts/lookup.py) (`python scripts/lookup.py
+  --ext <ext>` from this skill directory) for a fingerprint of known slop
+  tells ([tells.csv](data/tells.csv)); a one-file logic patch skips it.
 - Close with a one-to-three sentence summary and the command you ran.
 - Load the language skill for the files you edit; `needquality-ui` when the
   diff is a web surface.

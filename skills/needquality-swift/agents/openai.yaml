@@ -1,0 +1,6 @@
+interface:
+  display_name: "NeedQuality swift"
+  short_description: "Swift and SwiftUI patch rules"
+  default_prompt: "Use $needquality-swift for this task."
+policy:
+  allow_implicit_invocation: true
