@@ -299,7 +299,7 @@ class EvalSchemaTests(unittest.TestCase):
 
             def build_command(self, prompt, cwd, model, mode):
                 self.prompts.append((mode, prompt))
-                self.workspaces.append((mode, cwd))
+                self.workspaces.append((mode, cwd, sorted(Path(cwd).iterdir())))
                 if mode == "judge":
                     script = (
                         "import json; "
@@ -345,7 +345,8 @@ class EvalSchemaTests(unittest.TestCase):
         self.assertIn('"tool": "web"', persisted)
         self.assertNotIn("sk-example-secret", adapter.prompts[-1][1])
         self.assertNotEqual(adapter.workspaces[0][1], adapter.workspaces[-1][1])
-        self.assertEqual(list(adapter.workspaces[-1][1].iterdir()), [])
+        self.assertEqual(adapter.workspaces[-1][0], "judge")
+        self.assertEqual(adapter.workspaces[-1][2], [])
 
     def test_malformed_task_attempt_grades_every_assertion_inconclusive(self) -> None:
         class MalformedAdapter(evaluator.ProviderAdapter):
