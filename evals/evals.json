@@ -1990,7 +1990,7 @@
         {
           "id": "names-fallback",
           "kind": "response_contains",
-          "pattern": "(?i)fall(?:ing)? back|fallback"
+          "pattern": "(?i)(?:fall(?:s|ing)?|fell) back|fallback"
         }
       ],
       "rubric": [

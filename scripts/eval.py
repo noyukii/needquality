@@ -7,6 +7,7 @@ import argparse
 import concurrent.futures
 import difflib
 import hashlib
+import inspect
 import json
 import os
 import re
@@ -47,7 +48,7 @@ PROFILE_CUSTOMIZATIONS = (
     "CLAUDE.md",
 )
 TRACE_LINE_RE = re.compile(r"(?m)^\s*`⚙︎ Used: ([^`\n]+)`\s*$")
-TRACE_MARKER_RE = re.compile(r"(?im)^\s*`?⚙︎\s+Used\s*:")
+TRACE_MARKER_RE = re.compile(r"(?i)⚙[\ufe0e\ufe0f]?\s+Used\s*:")
 
 JUDGE_PROMPT = """Grade one agent attempt. Use only the supplied task, original files,
 final diff, final response, and normalized tool events. Tools are disabled. A rubric item
@@ -120,7 +121,14 @@ def extract_baseline(archive: Path, destination: Path) -> Path:
                 raise ValueError(f"unsafe path in baseline archive: {member.name}")
             if member.issym() or member.islnk():
                 raise ValueError(f"link in baseline archive: {member.name}")
-        bundle.extractall(destination, filter="data")
+            if not member.isfile() and not member.isdir():
+                raise ValueError(f"unsafe archive member: {member.name}")
+        options = (
+            {"filter": "data"}
+            if "filter" in inspect.signature(bundle.extractall).parameters
+            else {}
+        )
+        bundle.extractall(destination, **options)
     runtime_files(destination, require_metadata=False)
     return destination
 

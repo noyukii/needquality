@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+import tarfile
 import tempfile
 import unittest
 from datetime import UTC, datetime
@@ -190,19 +191,26 @@ class EvalSchemaTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             with patch.dict("os.environ", {"SERVICE_TOKEN": "environment-secret-value-123"}, clear=False):
-                evaluator.save_text(root / "final.md", "sk-example-secret-123456789\n")
+                evaluator.save_text(
+                    root / "final.md",
+                    'api_key = "ordinary-fixture-secret-value"\n'
+                    "sk-example-secret-123456789\n",
+                )
                 evaluator.save_text(root / "diff.patch", "STRIPE_WEBHOOK_SECRET=whsec_abcdefghijklmnopqrstuvwxyz123456\n")
                 evaluator.save_json(root / "request.json", {"value": "environment-secret-value-123"})
                 evaluator.save_events(
                     root / "events.jsonl",
                     [{"arguments": {"authorization": "Bearer abcdefghijklmnopqrstuvwxyz"}}],
                 )
+                evaluator.save_text(root / "types.ts", "token: string;\n")
             persisted = "\n".join(path.read_text(encoding="utf-8") for path in root.iterdir())
         self.assertNotIn("sk-example-secret", persisted)
         self.assertNotIn("environment-secret-value", persisted)
+        self.assertNotIn("ordinary-fixture-secret-value", persisted)
         self.assertNotIn("abcdefghijklmnopqrstuvwxyz", persisted)
         self.assertNotIn("whsec_", persisted)
         self.assertIn("<redacted>", persisted)
+        self.assertIn("token: string;", persisted)
 
     def test_judge_requires_enforced_tool_free_mode(self) -> None:
         self.assertFalse(evaluator.adapter_for("cursor").supports_tool_free_judge)
@@ -272,6 +280,19 @@ class EvalSchemaTests(unittest.TestCase):
         self.assertEqual(errors, [])
         self.assertEqual(texts, ["final answer"])
         self.assertEqual(events[0]["type"], "result")
+
+    def test_codex_does_not_treat_tool_result_as_final_response(self) -> None:
+        _, texts, errors = evaluator.adapter_for("codex").normalize_record(
+            {
+                "type": "item.completed",
+                "item": {"type": "tool_result", "result": "internal tool output"},
+                "result": "internal tool output",
+            },
+            "stdout:10",
+            datetime.now(UTC).isoformat(),
+        )
+        self.assertTrue(errors)
+        self.assertEqual(texts, [])
 
     def test_streaming_runner_timestamps_events_and_times_out(self) -> None:
         class FakeAdapter(evaluator.ProviderAdapter):
@@ -440,10 +461,18 @@ class EvalSchemaTests(unittest.TestCase):
 
     def test_trace_absent_rejects_unformatted_trace_marker(self) -> None:
         case = {"checks": [{"id": "route", "kind": "trace_absent"}]}
-        result = evaluator.deterministic_checks(
-            case, Path.cwd(), "⚙︎ Used: job:implement\nDone", []
-        )
-        self.assertEqual(result[0]["status"], "FAIL")
+        for response in (
+            "⚙︎ Used: job:implement\nDone",
+            "⚙ Used: job:implement\nDone",
+            "⚙️ Used: job:implement\nDone",
+            "> `⚙︎ Used: job:implement`\nDone",
+            "- `⚙︎ Used: job:implement`\nDone",
+        ):
+            with self.subTest(response=response):
+                result = evaluator.deterministic_checks(
+                    case, Path.cwd(), response, []
+                )
+                self.assertEqual(result[0]["status"], "FAIL")
 
     def test_malformed_stream_is_detectable(self) -> None:
         events, final = evaluator.normalize_output("not json\n", "cursor")
@@ -478,6 +507,17 @@ class EvalSchemaTests(unittest.TestCase):
             )
             self.assertTrue((extracted / "SKILL.md").is_file())
             self.assertTrue(any(path.name == "SKILL.md" for path in extracted.rglob("SKILL.md")))
+
+    def test_baseline_rejects_special_archive_members(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            archive = root / "unsafe.tar.gz"
+            with tarfile.open(archive, "w:gz") as bundle:
+                member = tarfile.TarInfo("pipe")
+                member.type = tarfile.FIFOTYPE
+                bundle.addfile(member)
+            with self.assertRaisesRegex(ValueError, "unsafe archive member"):
+                evaluator.extract_baseline(archive, root / "output")
 
 
 if __name__ == "__main__":
