@@ -6,69 +6,145 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import os
 import re
 import sys
 from collections import defaultdict, deque
 from pathlib import Path
+from urllib.parse import unquote, urlsplit
 
 from eval_schema import load_evals, validate_baseline, validate_evals
+from runtime_payload import frontmatter, runtime_files
 
 ROOT = Path(__file__).resolve().parent.parent
 LINK_RE = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
+REFERENCE_LINK_RE = re.compile(r"!?\[([^\]]+)\]\[([^\]]*)\]")
+REFERENCE_DEFINITION_RE = re.compile(r"(?m)^ {0,3}\[([^\]]+)\]:\s*(\S+)")
 TABLE_LINK_RE = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 RESEARCH_PATH = ROOT / "references" / "flows" / "research.md"
+EXPECTED_DESCRIPTION = (
+    "Route software engineering tasks to focused guidance for implementation, "
+    "debugging, code review, architecture, testing, delivery, technical research, "
+    "software documentation, UI/UX, trust boundaries, and agent-workflow design. "
+    "Use for repository work and technical artifacts; do not use for unrelated "
+    "general knowledge or non-technical prose polishing."
+)
+FORBIDDEN_PORTABLE_TEXT = {
+    "/clear": "provider-specific clear command",
+    "/compact": "provider-specific compact command",
+    "~/.claude/skills/": "provider-specific specialist path",
+    "bundled SKILL.md": "nested child-skill terminology",
+    "model-invoked references": "nested discovery terminology",
+    "Model-invoked": "nested discovery terminology",
+    "Do not load frontend-design": "external skill suppression",
+    "Firecrawl skill is also loaded": "external skill precedence claim",
+}
 
 
-def frontmatter(text: str) -> tuple[dict[str, str], list[str]]:
-    if not text.startswith("---\n"):
-        return {}, []
-    try:
-        _, body, _ = text.split("---\n", 2)
-    except ValueError:
-        return {}, ["unclosed YAML frontmatter"]
-    fields: dict[str, str] = {}
-    errors: list[str] = []
-    lines = body.splitlines()
-    index = 0
-    while index < len(lines):
-        line = lines[index]
-        if not line.strip():
-            index += 1
+def prose_without_code(text: str) -> str:
+    kept: list[str] = []
+    fence: str | None = None
+    for line in text.splitlines():
+        stripped = line.lstrip()
+        marker = stripped[:3]
+        if fence:
+            if marker == fence:
+                fence = None
             continue
-        if line.startswith((" ", "\t")) or ":" not in line:
-            errors.append(f"invalid frontmatter line: {line!r}")
-            index += 1
+        if marker in {"```", "~~~"}:
+            fence = marker
             continue
-        key, value = line.split(":", 1)
-        key, value = key.strip(), value.strip()
-        if key in fields:
-            errors.append(f"duplicate frontmatter key: {key}")
-        if value in {">", "|"}:
-            continuation: list[str] = []
-            index += 1
-            while index < len(lines) and lines[index].startswith("  "):
-                continuation.append(lines[index].strip())
-                index += 1
-            value = " ".join(continuation) if value == ">" else "\n".join(continuation)
-        else:
-            index += 1
-        fields[key] = value.strip('"\'')
-    return fields, errors
+        kept.append(re.sub(r"(?P<ticks>`+).*?(?P=ticks)", "", line))
+    return "\n".join(kept)
+
+
+def clean_link_target(target: str) -> str:
+    target = target.strip()
+    if target.startswith("<") and ">" in target:
+        return target[1 : target.index(">")]
+    return target.split(maxsplit=1)[0] if target else ""
 
 
 def local_target(source: Path, target: str) -> Path | None:
-    clean = target.split("#", 1)[0]
-    if not clean or "://" in clean or clean.startswith(("mailto:", "/")):
-        return None
-    if clean == "link" or clean.startswith("./src/"):
-        return None
-    return (source.parent / clean).resolve(strict=False)
+    target = clean_link_target(target)
+    parsed = urlsplit(target)
+    if parsed.scheme:
+        if parsed.scheme in {"http", "https", "mailto"}:
+            return None
+        raise ValueError(f"unsupported link scheme: {target}")
+    if not parsed.path:
+        return source.resolve() if parsed.fragment else None
+    if parsed.path.startswith("/"):
+        raise ValueError(f"absolute local link: {target}")
+    return (source.parent / unquote(parsed.path)).resolve(strict=False)
+
+
+def document_targets(text: str, errors: list[str], label: str) -> list[str]:
+    prose = prose_without_code(text)
+    targets = LINK_RE.findall(prose)
+    definitions: dict[str, str] = {}
+    for name, target in REFERENCE_DEFINITION_RE.findall(prose):
+        key = " ".join(name.lower().split())
+        if key in definitions:
+            errors.append(f"{label}: duplicate reference-link definition: {name}")
+        definitions[key] = target
+    for text_label, reference in REFERENCE_LINK_RE.findall(prose):
+        key = " ".join((reference or text_label).lower().split())
+        if key not in definitions:
+            errors.append(f"{label}: missing reference-link definition: {reference or text_label}")
+        else:
+            targets.append(definitions[key])
+    return targets
+
+
+def heading_anchors(text: str) -> set[str]:
+    anchors: set[str] = set()
+    counts: dict[str, int] = defaultdict(int)
+    prose = prose_without_code(text)
+    for heading in re.findall(r"(?m)^ {0,3}#{1,6}\s+(.+?)\s*#*\s*$", prose):
+        label = re.sub(r"!?\[([^\]]+)\]\([^)]+\)", r"\1", heading)
+        label = re.sub(r"<[^>]+>|[*_~]", "", label).strip().lower()
+        base = re.sub(r"[^\w\- ]", "", label)
+        base = re.sub(r"[ \t]+", "-", base)
+        index = counts[base]
+        counts[base] += 1
+        anchors.add(base if index == 0 else f"{base}-{index}")
+    anchors.update(
+        match
+        for match in re.findall(r"(?i)<a\s+(?:id|name)=[\"']([^\"']+)[\"']", prose)
+    )
+    return anchors
+
+
+def reference_files(root: Path, errors: list[str]) -> list[Path]:
+    references = root / "references"
+    if not references.is_dir():
+        errors.append("references: missing directory")
+        return []
+    files: list[Path] = []
+    for current, directories, names in os.walk(references, topdown=True, followlinks=False):
+        parent = Path(current)
+        for name in [*directories, *names]:
+            path = parent / name
+            if path.is_symlink():
+                errors.append(f"references: symlink is not allowed: {path.relative_to(root)}")
+        directories[:] = [name for name in directories if not (parent / name).is_symlink()]
+        files.extend(
+            parent / name
+            for name in names
+            if name != ".DS_Store" and not (parent / name).is_symlink()
+        )
+    return sorted(files)
 
 
 def validate_docs(errors: list[str]) -> int:
     root_skill = ROOT / "SKILL.md"
-    references = sorted((ROOT / "references").rglob("*.md"))
-    docs = [root_skill, *references]
+    if not root_skill.is_file():
+        errors.append("discovery: missing root SKILL.md")
+        return 0
+    references = reference_files(ROOT, errors)
+    markdown = [path for path in references if path.suffix.lower() == ".md"]
+    docs = [root_skill, *markdown]
     root_resolved = ROOT.resolve()
     graph: dict[Path, set[Path]] = defaultdict(set)
 
@@ -81,8 +157,12 @@ def validate_docs(errors: list[str]) -> int:
 
     for path in docs:
         text = path.read_text(encoding="utf-8")
-        for target in LINK_RE.findall(text):
-            resolved = local_target(path, target)
+        for target in document_targets(text, errors, path.relative_to(ROOT).as_posix()):
+            try:
+                resolved = local_target(path, target)
+            except ValueError as error:
+                errors.append(f"{path.relative_to(ROOT)}: {error}")
+                continue
             if resolved is None:
                 continue
             try:
@@ -93,8 +173,15 @@ def validate_docs(errors: list[str]) -> int:
             if not resolved.exists():
                 errors.append(f"{path.relative_to(ROOT)}: missing link: {target}")
                 continue
-            if resolved.suffix == ".md":
-                graph[path.resolve()].add(resolved)
+            if not resolved.is_file():
+                errors.append(f"{path.relative_to(ROOT)}: link is not a regular file: {target}")
+                continue
+            fragment = unquote(urlsplit(clean_link_target(target)).fragment)
+            if fragment and resolved.suffix.lower() == ".md":
+                if fragment not in heading_anchors(resolved.read_text(encoding="utf-8")):
+                    errors.append(f"{path.relative_to(ROOT)}: missing fragment: {target}")
+                    continue
+            graph[path.resolve()].add(resolved)
 
     reachable: set[Path] = set()
     queue = deque([root_skill.resolve()])
@@ -112,10 +199,12 @@ def validate_docs(errors: list[str]) -> int:
     errors.extend(f"SKILL.md: {error}" for error in metadata_errors)
     if set(fields) != {"name", "description"}:
         errors.append("SKILL.md: frontmatter keys must be exactly name and description")
-    if fields.get("name") != ROOT.name:
-        errors.append(f"SKILL.md: name must be {ROOT.name!r}")
+    if fields.get("name") != "needquality":
+        errors.append("SKILL.md: name must be 'needquality'")
     if not fields.get("description"):
         errors.append("SKILL.md: missing description")
+    elif fields["description"] != EXPECTED_DESCRIPTION:
+        errors.append("SKILL.md: description does not match the supported scope")
     if len(root_skill.read_text(encoding="utf-8").splitlines()) > 500:
         errors.append("SKILL.md: over 500 lines")
     if len(fields.get("description", "")) > 1024:
@@ -123,23 +212,77 @@ def validate_docs(errors: list[str]) -> int:
     return len(docs)
 
 
-def words_rows() -> list[tuple[str, str]]:
+def table_rows(
+    section: str,
+    label: str,
+    expected_header: list[str],
+    errors: list[str] | None,
+) -> list[list[str]]:
+    lines = [line for line in section.splitlines() if line.startswith("|")]
+    if len(lines) < 2:
+        if errors is not None:
+            errors.append(f"routes: missing {label} table")
+        return []
+    parsed = [[cell.strip() for cell in line.strip("|").split("|")] for line in lines]
+    if parsed[0] != expected_header and errors is not None:
+        errors.append(
+            f"routes: {label} header must be {' | '.join(expected_header)}"
+        )
+    if len(parsed[1]) != len(expected_header) or not all(
+        re.fullmatch(r":?-{3,}:?", cell) for cell in parsed[1]
+    ):
+        if errors is not None:
+            errors.append(f"routes: malformed {label} table separator")
+    rows: list[list[str]] = []
+    for number, cells in enumerate(parsed[2:], 1):
+        if len(cells) != len(expected_header) or any(not cell for cell in cells):
+            if errors is not None:
+                errors.append(f"routes: malformed {label} row {number}: {lines[number + 1]}")
+            continue
+        rows.append(cells)
+    return rows
+
+
+def words_rows(errors: list[str] | None = None) -> list[tuple[str, str]]:
     text = (ROOT / "SKILL.md").read_text(encoding="utf-8")
-    section = text.split("## Words", 1)[1].split("## Load", 1)[0]
+    if "## Words" not in text or "## Load" not in text:
+        if errors is not None:
+            errors.append("routes: SKILL.md must contain Words and Load sections")
+        return []
+    after_words = text.split("## Words", 1)[1]
+    if "## Load" not in after_words:
+        if errors is not None:
+            errors.append("routes: Load must follow Words")
+        return []
+    section = after_words.split("## Load", 1)[0]
     rows: list[tuple[str, str]] = []
-    for line in section.splitlines():
-        if not line.startswith("|") or line.startswith(("|---", "| They say")):
-            continue
-        cells = [cell.strip() for cell in line.strip("|").split("|")]
-        if len(cells) != 3:
-            continue
+    for cells in table_rows(section, "Words", ["They say", "Do", "Read"], errors):
         links = TABLE_LINK_RE.findall(cells[2])
+        root_owned = cells[2].strip().lower() == "this file"
+        if (len(links) != 1 and not root_owned) or (links and root_owned):
+            if errors is not None:
+                errors.append(
+                    f"routes: Words row must contain one target link or 'this file': {cells[0]}"
+                )
         rows.append((cells[0], links[0] if links else ""))
     return rows
 
 
+def validate_load_table(errors: list[str]) -> None:
+    text = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+    match = re.search(r"(?ms)^## Load\s*$\n(.*?)(?=^## |\Z)", text)
+    if not match:
+        errors.append("routes: missing Load section")
+        return
+    rows = table_rows(match.group(1), "Load", ["Touching", "Read before editing"], errors)
+    for cells in rows:
+        if not TABLE_LINK_RE.search(cells[1]):
+            errors.append(f"routes: Load row has no reference link: {cells[0]}")
+
+
 def validate_routes(errors: list[str]) -> tuple[int, int]:
-    rows = words_rows()
+    rows = words_rows(errors)
+    validate_load_table(errors)
     phrases: dict[str, str] = {}
     targets: dict[str, list[str]] = defaultdict(list)
     for phrase_cell, target in rows:
@@ -153,7 +296,14 @@ def validate_routes(errors: list[str]) -> tuple[int, int]:
                 )
             phrases[normalized] = phrase_cell
         if target:
-            targets[target].append(phrase_cell)
+            try:
+                canonical = (ROOT / clean_link_target(target)).resolve().relative_to(
+                    ROOT.resolve()
+                ).as_posix()
+            except (OSError, ValueError):
+                errors.append(f"routes: target escapes or is missing: {target}")
+            else:
+                targets[canonical].append(phrase_cell)
 
     expected_jobs = {
         path.relative_to(ROOT).as_posix() for path in (ROOT / "references" / "jobs").glob("*.md")
@@ -161,10 +311,7 @@ def validate_routes(errors: list[str]) -> tuple[int, int]:
     expected_flows = {
         path.relative_to(ROOT).as_posix() for path in (ROOT / "references" / "flows").glob("*.md")
     }
-    actual = {
-        (ROOT / target).resolve().relative_to(ROOT.resolve()).as_posix()
-        for target in targets
-    }
+    actual = set(targets)
     for target in sorted(expected_jobs | expected_flows):
         if target not in actual:
             errors.append(f"routes: missing Words row for {target}")
@@ -228,6 +375,15 @@ def validate_metadata(errors: list[str]) -> None:
             errors.append(f"agents/openai.yaml: missing {marker}")
 
 
+def validate_portability(errors: list[str]) -> None:
+    paths = [ROOT / "SKILL.md", *(ROOT / "references").rglob("*.md")]
+    for path in paths:
+        text = path.read_text(encoding="utf-8")
+        for marker, label in FORBIDDEN_PORTABLE_TEXT.items():
+            if marker in text:
+                errors.append(f"{path.relative_to(ROOT)}: {label}: {marker}")
+
+
 def validate_legacy_manifest(errors: list[str]) -> None:
     path = ROOT / "data" / "legacy-v1-manifest.json"
     try:
@@ -247,11 +403,16 @@ def main() -> int:
     parser.add_argument("--stats", action="store_true", help="print inventory as JSON")
     args = parser.parse_args()
     errors: list[str] = []
+    try:
+        runtime_files(ROOT)
+    except ValueError as error:
+        errors.append(f"runtime payload: {error}")
     docs = validate_docs(errors)
     jobs, flows = validate_routes(errors)
     validate_research(errors)
     tells = validate_tells(errors)
     validate_metadata(errors)
+    validate_portability(errors)
     validate_legacy_manifest(errors)
     eval_data = load_evals(ROOT / "evals" / "evals.json")
     errors.extend(validate_evals(eval_data, ROOT))

@@ -20,26 +20,32 @@ register the bundled flows as competing skills.
 Use Python 3.11 or newer. Runtime scripts use only the standard library.
 
 ```bash
-python scripts/install.py --all
+python3 scripts/install.py --all
 ```
 
 `--all` creates or updates the standard skill roots for the shared Agent Skills
 location, Claude, Cursor, and Codex. Other useful forms:
 
 ```bash
-python scripts/install.py
-python scripts/install.py --check
-python scripts/install.py --platform codex --platform cursor
-python scripts/install.py --root /path/to/custom/skills
-python scripts/install.py --force
+python3 scripts/install.py
+python3 scripts/install.py --check
+python3 scripts/install.py --platform codex --platform cursor
+python3 scripts/install.py --root /path/to/custom/skills
+python3 scripts/install.py --force
 ```
 
 Without a target option, the installer updates existing NeedQuality installs.
 `--check` reports missing, changed, stale, and locally modified files without
 writing. Each install carries a hash manifest. Updates remove only unchanged
 files previously managed by NeedQuality and preserve local modifications as
-conflicts. Use `--force` only when those exact managed modifications should be
-replaced.
+conflicts. Updates are staged and rolled back per destination if a write fails.
+Use `--force` only to replace a modified managed file that still exists in the
+current payload. Modified stale or legacy files and conflicting directories
+remain conflicts even with `--force`.
+
+The install name comes from the root skill metadata, so renamed source
+checkouts still install as `needquality`. Source payload symlinks and nested
+destination symlinks are rejected rather than followed.
 
 Codex uses `$CODEX_HOME/skills`, falling back to `~/.codex/skills`. The other
 standard roots are `~/.agents/skills`, `~/.claude/skills`, and
@@ -62,7 +68,7 @@ distinct operations. Active runs emit the canonical route trace documented in
 Use the inventory command instead of relying on copied counts:
 
 ```bash
-python scripts/validate.py --stats
+python3 scripts/validate.py --stats
 ```
 
 ## Portability
@@ -82,15 +88,15 @@ ordinary `implement` flow when isolated agents or worktrees are unavailable.
 The deterministic checks are safe for local development and CI:
 
 ```bash
-python -m unittest discover -s tests -v
-python scripts/validate.py
-python scripts/eval.py --check
-python -m py_compile scripts/*.py
+python3 -m unittest discover -s tests -v
+python3 scripts/validate.py
+python3 scripts/eval.py --check
+python3 -m py_compile scripts/*.py
 ```
 
 Validation enforces a single discoverable skill, complete and unambiguous
-routes, a fully reachable reference graph, valid links and metadata, and the
-evaluation schema.
+routes, a fully reachable runtime reference graph (including non-Markdown
+companions), valid internal links and metadata, and the evaluation schema.
 
 ## Differential evaluation
 
@@ -104,7 +110,7 @@ flow before running paid evaluations.
 Run the full candidate-versus-baseline suite on the reference runner:
 
 ```bash
-python scripts/eval.py --run \
+python3 scripts/eval.py --run \
   --runner cursor \
   --profile-dir /path/to/eval-profiles/cursor \
   --candidate .
@@ -118,7 +124,7 @@ implementation-start snapshot in `evals/baseline-runtime.tar.gz`. Pass
 Smoke-test native discovery on configured providers:
 
 ```bash
-python scripts/eval.py --smoke \
+python3 scripts/eval.py --smoke \
   --runner all \
   --profile-dir /path/to/eval-profiles \
   --candidate .
@@ -127,16 +133,21 @@ python scripts/eval.py --smoke \
 Run the release matrix, which defaults to three attempts per provider:
 
 ```bash
-python scripts/eval.py --matrix \
+python3 scripts/eval.py --matrix \
   --profile-dir /path/to/eval-profiles \
   --candidate .
 ```
 
-The harness stores ignored, redacted evidence under `evals/.runs/`: normalized
-tool events, final responses, workspace diffs, timings, deterministic checks,
-semantic grading, and paired summaries. A missing runner, malformed event
-stream, absent final response, or failed judge is `INCONCLUSIVE`, never a pass.
-Paid model evaluations are manual and are not part of CI.
+The harness stores ignored, redacted evidence under `evals/.runs/`: raw and
+normalized event streams, final responses, workspace diffs, exact request and
+runner configuration, timings, deterministic checks, semantic grading, and
+paired summaries. Result rows use `PASS`, `FAIL`, or `INCONCLUSIVE`; missing or
+malformed evidence never contributes to a pass rate.
+
+Semantic grading runs only when a provider adapter can technically disable
+tools. Read-only, planning, or ask modes are not substitutes. A runner without
+an enforceable tool-free judge records rubric results as `INCONCLUSIVE`. Paid
+model evaluations remain manual and outside CI.
 
 ## Attribution
 

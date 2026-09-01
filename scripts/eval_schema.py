@@ -88,8 +88,12 @@ def validate_evals(data: object, root: Path | None = None) -> list[str]:
                     or path.parts[:2] != ("evals", "files")
                 ):
                     errors.append(f"eval {cid}: fixture is outside evals/files: {rel!r}")
-                elif root is not None and not (root / path).is_file():
-                    errors.append(f"eval {cid}: missing fixture {rel}")
+                elif root is not None:
+                    fixture = root / path
+                    if fixture.is_symlink():
+                        errors.append(f"eval {cid}: fixture must not be a symlink: {rel}")
+                    elif not fixture.is_file():
+                        errors.append(f"eval {cid}: missing fixture {rel}")
 
         checks = case.get("checks")
         rubric = case.get("rubric")
@@ -137,7 +141,9 @@ def validate_evals(data: object, root: Path | None = None) -> list[str]:
                     errors.append(f"eval {cid}: {check_id} has invalid trace parts")
                 elif len(parts) != len(set(parts)):
                     errors.append(f"eval {cid}: {check_id} trace parts must be unique")
-            if kind in TOOL_KINDS and not isinstance(check.get("tool"), str):
+            if kind in TOOL_KINDS and (
+                not isinstance(check.get("tool"), str) or not check["tool"].strip()
+            ):
                 errors.append(f"eval {cid}: {check_id} requires tool")
 
         for item in rubric:

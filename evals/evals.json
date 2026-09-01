@@ -1807,7 +1807,7 @@
         {
           "id": "no-clear-command",
           "kind": "response_not_contains",
-          "pattern": "`/(?:clear|compact)(?:\\\\s|`)"
+          "pattern": "(?i)(?<![A-Za-z0-9_])/(?:clear|compact)\\b"
         }
       ],
       "rubric": [
@@ -1841,6 +1841,91 @@
         }
       ],
       "rubric": []
+    },
+    {
+      "id": 69,
+      "name": "technical-documentation-activates",
+      "prompt": "Update the repository README for the new installer behavior. Route this request without modifying files, and name the selected job.",
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "route",
+          "kind": "trace_exact",
+          "parts": ["job:document", "load:copy"]
+        }
+      ],
+      "rubric": [
+        {
+          "id": "technical-docs-in-scope",
+          "text": "Treats repository documentation as in scope rather than declining it as prose-only work."
+        }
+      ]
+    },
+    {
+      "id": 70,
+      "name": "review-sequential-fallback",
+      "prompt": "Run a two-axis review, but independent workers are unavailable. Route this request without reviewing, and explain the fallback in one sentence.",
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "route",
+          "kind": "trace_exact",
+          "parts": ["flow:code-review"]
+        }
+      ],
+      "rubric": [
+        {
+          "id": "sequential-is-valid",
+          "text": "States that Standards and Spec can run sequentially with separate outputs and does not pretend parallel work occurred."
+        }
+      ]
+    },
+    {
+      "id": 71,
+      "name": "explicit-external-skill-composes",
+      "prompt": "Use NeedQuality together with an explicitly requested external design skill to improve a landing page. Route only; do not modify files.",
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "route",
+          "kind": "trace_exact",
+          "parts": ["job:improve", "load:ui"]
+        }
+      ],
+      "rubric": [
+        {
+          "id": "composes-skills",
+          "text": "Does not suppress the explicitly requested external skill and limits NeedQuality authority to its bundled guidance."
+        }
+      ]
+    },
+    {
+      "id": 72,
+      "name": "handoff-uses-root-route",
+      "prompt": "Prepare a handoff to another session. Route only; explain how the next session should resume without naming a child skill entrypoint.",
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "route",
+          "kind": "trace_exact",
+          "parts": ["flow:handoff"]
+        },
+        {
+          "id": "no-child-skill",
+          "kind": "response_not_contains",
+          "pattern": "(?i)bundled SKILL\\.md|child skill"
+        }
+      ],
+      "rubric": [
+        {
+          "id": "root-resume",
+          "text": "Tells the next session to invoke NeedQuality and select a root-routed flow slug."
+        }
+      ]
     }
   ]
 }

@@ -13,17 +13,11 @@ import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from runtime_payload import runtime_files, skill_name as payload_skill_name
+
 ROOT = Path(__file__).resolve().parent.parent
-SKILL_NAME = ROOT.name
 MANIFEST_NAME = ".needquality-manifest.json"
 LEGACY_MANIFEST = ROOT / "data" / "legacy-v1-manifest.json"
-PAYLOAD = (
-    "SKILL.md",
-    "references",
-    "data/tells.csv",
-    "scripts/lookup.py",
-    "agents/openai.yaml",
-)
 
 
 @dataclass
@@ -51,24 +45,12 @@ def standard_roots() -> dict[str, Path]:
     }
 
 
+def skill_name() -> str:
+    return payload_skill_name(ROOT)
+
+
 def source_files() -> dict[str, Path]:
-    files: dict[str, Path] = {}
-    for rel in PAYLOAD:
-        source = ROOT / rel
-        if not source.exists():
-            raise ValueError(f"missing payload: {rel}")
-        candidates = (
-            sorted(path for path in source.rglob("*") if path.is_file())
-            if source.is_dir()
-            else [source]
-        )
-        for path in candidates:
-            if path.name == ".DS_Store" or "__pycache__" in path.parts:
-                continue
-            files[path.relative_to(ROOT).as_posix()] = path
-    if not files:
-        raise ValueError("no payload files found")
-    return files
+    return runtime_files(ROOT)
 
 
 def read_manifest(path: Path) -> dict[str, str]:
@@ -86,8 +68,14 @@ def read_manifest(path: Path) -> dict[str, str]:
 
 def previous_files(destination: Path) -> dict[str, str]:
     manifest = destination / MANIFEST_NAME
-    if manifest.is_file():
+    if manifest.is_symlink():
+        raise ValueError(f"manifest is a symlink: {manifest}")
+    if manifest.exists():
+        if not manifest.is_file():
+            raise ValueError(f"manifest is not a regular file: {manifest}")
         return read_manifest(manifest)
+    if LEGACY_MANIFEST.is_symlink():
+        raise ValueError(f"legacy manifest is a symlink: {LEGACY_MANIFEST}")
     return read_manifest(LEGACY_MANIFEST)
 
 
@@ -162,7 +150,7 @@ def atomic_copy(source: Path, output: Path) -> None:
 def atomic_manifest(destination: Path, sources: dict[str, Path]) -> None:
     payload = {
         "format": 1,
-        "skill": SKILL_NAME,
+        "skill": skill_name(),
         "files": {rel: digest(path) for rel, path in sorted(sources.items())},
     }
     destination.mkdir(parents=True, exist_ok=True)
@@ -200,29 +188,75 @@ def sync(
     drift: Drift,
     force: bool,
 ) -> list[str]:
-    unmanaged = [rel for rel in drift.conflicts if rel not in previous]
-    if drift.conflicts and (not force or unmanaged):
-        return unmanaged or drift.conflicts
+    replaceable_conflicts = {
+        rel
+        for rel in drift.conflicts
+        if force
+        and rel in previous
+        and rel in sources
+        and safe_path(destination, rel).is_file()
+    }
+    blocked = [rel for rel in drift.conflicts if rel not in replaceable_conflicts]
+    if blocked:
+        return blocked
 
-    for rel in (*drift.missing, *drift.changed):
-        atomic_copy(sources[rel], safe_path(destination, rel))
-    for rel in drift.conflicts:
-        output = safe_path(destination, rel)
-        if rel in sources:
-            atomic_copy(sources[rel], output)
-        elif output.is_file():
-            output.unlink()
-            prune_empty(output.parent, destination)
-    for rel in drift.stale:
-        output = safe_path(destination, rel)
-        output.unlink()
-        prune_empty(output.parent, destination)
-    atomic_manifest(destination, sources)
+    replacements = sorted({*drift.missing, *drift.changed, *replaceable_conflicts})
+    removals = sorted(drift.stale)
+    outputs = {rel: safe_path(destination, rel) for rel in (*replacements, *removals)}
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.mkdir(parents=True, exist_ok=True)
+    manifest = destination / MANIFEST_NAME
+
+    with tempfile.TemporaryDirectory(
+        dir=destination.parent, prefix=f".{destination.name}.transaction."
+    ) as temp:
+        transaction = Path(temp)
+        staged = transaction / "staged"
+        backups = transaction / "backups"
+        existed: set[str] = set()
+        for rel in replacements:
+            stage = staged / rel
+            stage.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(sources[rel], stage)
+        for rel, output in outputs.items():
+            if output.exists():
+                if not output.is_file():
+                    return [rel]
+                backup = backups / rel
+                backup.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(output, backup)
+                existed.add(rel)
+        manifest_backup = transaction / MANIFEST_NAME
+        manifest_existed = manifest.is_file()
+        if manifest_existed:
+            shutil.copy2(manifest, manifest_backup)
+
+        try:
+            for rel in replacements:
+                atomic_copy(staged / rel, outputs[rel])
+            for rel in removals:
+                outputs[rel].unlink()
+                prune_empty(outputs[rel].parent, destination)
+            atomic_manifest(destination, sources)
+        except BaseException:
+            for rel, output in outputs.items():
+                backup = backups / rel
+                if rel in existed:
+                    atomic_copy(backup, output)
+                elif output.is_file() or output.is_symlink():
+                    output.unlink()
+                    prune_empty(output.parent, destination)
+            if manifest_existed:
+                atomic_copy(manifest_backup, manifest)
+            elif manifest.exists():
+                manifest.unlink()
+            raise
     return []
 
 
 def selected_destinations(args: argparse.Namespace) -> list[Path]:
     roots = standard_roots()
+    name = skill_name()
     if args.root and (args.all or args.platform):
         raise ValueError("--root cannot be combined with --all or --platform")
     if args.root:
@@ -232,17 +266,20 @@ def selected_destinations(args: argparse.Namespace) -> list[Path]:
     elif args.all:
         selected = list(roots.values())
     else:
-        selected = [root for root in roots.values() if (root / SKILL_NAME).is_dir()]
+        selected = [root for root in roots.values() if (root / name).is_dir()]
 
     destinations: list[Path] = []
     seen: set[Path] = set()
     for root in selected:
-        destination = root.expanduser().absolute() / SKILL_NAME
-        canonical = destination.resolve(strict=False)
+        selected_root = root.expanduser().absolute()
+        unresolved_destination = selected_root / name
+        if unresolved_destination.is_symlink():
+            raise ValueError(f"destination is a symlink: {unresolved_destination}")
+        canonical = selected_root.resolve(strict=False) / name
         if canonical in seen:
             continue
         seen.add(canonical)
-        destinations.append(destination)
+        destinations.append(canonical)
     return destinations
 
 

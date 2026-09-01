@@ -2,7 +2,9 @@
 
 A **phase** is a chunk of work inside a session: the grilling, the implementation, the QA. The definition is fuzzy on purpose: a phase ends when you think *"ok, we're done with that"*.
 
-The **phase boundary** is the gap between two phases, and it is the only place this decision belongs. Mid-phase there is no decision to make: continue, or split the work that's left into subagents. Compacting mid-phase makes the agent lose the thread.
+The **phase boundary** is the gap between two phases, and it is the only place
+this decision belongs. Mid-phase, continue or split independent work only when
+the host exposes that capability. Moving context mid-phase can lose the thread.
 
 ## The five options
 
@@ -33,7 +35,10 @@ The cost of getting this wrong is one-way. Clear a *relevant* context and you lo
 
 That list is the whole clause. What [handoff](../handoff.md) buys is **portability**: a file that travels. If nothing is travelling, you don't need it.
 
-**4. Can the task be done AFK?** Is it scoped tightly enough to run with you away from the keyboard, no steering? Then send it to a **subagent** and leave this session untouched. Automated review is the standard case: the agent reads the diff and reports, and you aren't needed while it does.
+**4. Can the task be done AFK, and does the host expose an independent
+worker?** If it is scoped tightly enough to run without steering, send it to a
+**subagent** and leave this session untouched. Otherwise continue locally or
+use a handoff at the boundary. Automated review is a common AFK case.
 
 **5. Otherwise, compact context.** Relevant context, same harness, same directory, and you need to stay in the loop: use the host's context-summary control. Give it the next phase so the summary retains what that phase needs. If the host has no compaction control, continue or use [handoff](../handoff.md).
 

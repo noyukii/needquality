@@ -78,7 +78,7 @@ Missions may change as the user develops more skills and knowledge. This is norm
 
 ## Zone Of Proximal Development
 
-Each lesson, the user should always feel as if they are being challenged 'just enough'.
+Aim for each lesson to challenge the user "just enough" for the current level.
 
 The user may specify an exact thing they want to learn. If they don't, figure out their zone of proximal development by:
 

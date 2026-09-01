@@ -25,9 +25,9 @@ copy is streamline/empower plus a pill over the H1.
    ([14 patterns](https://slopcop.adriankrebs.ch/patterns)).
 2. **Live score.** Open
    [slopcop.adriankrebs.ch](https://slopcop.adriankrebs.ch/),
-   paste the URL, read the tier. Or, if
-   `~/.claude/skills/impeccable/scripts/detect.mjs` exists:
-   `node …/detect.mjs {url}` — do not `npx` install.
+   paste the URL, and read the tier. If the host exposes an explicitly
+   requested detector, use its documented interface. Do not assume a local
+   provider path or install a detector for this check.
 3. **No tool.** Count fingerprint hits yourself. 5+ on a
    *new* surface = High. Quote the hits. Do not invent a
    Slopcop score you did not read.

@@ -174,7 +174,11 @@ TTL; user-specific data is not a global key. Don't read `cookies()` /
 
 `NEXT_PUBLIC_` / `VITE_` / `REACT_APP_` / `EXPO_PUBLIC_` is public. Service-role,
 Stripe, and OpenAI keys stay on the server. Don't pass them (or the
-session) into a Client Component. With PostgreSQL RLS enabled, no applicable
+session) into a Client Component.
+
+### Row-level security (Postgres)
+
+With PostgreSQL RLS enabled, no applicable
 policy is default-deny. `USING (true)` intentionally permits every row covered
 by that policy. Table owners and roles with `BYPASSRLS` normally bypass RLS;
 use `FORCE ROW LEVEL SECURITY` when the owner must be subject to policies.

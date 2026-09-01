@@ -1,12 +1,11 @@
 ---
 name: needquality
 description: >
-  Route software work to the smallest relevant bundled job, flow, and
-  reference. Use for implementation, fixes, review, debugging, architecture,
-  testing, delivery, research, UI/UX, trust boundaries, and agent-workflow
-  design. Also use for needquality, noslop, deslop, ponytail, YAGNI, or slop.
-  Supports code and agent documentation across common languages and web
-  frameworks. Do not use for unrelated general knowledge or prose-only edits.
+  Route software engineering tasks to focused guidance for implementation,
+  debugging, code review, architecture, testing, delivery, technical research,
+  software documentation, UI/UX, trust boundaries, and agent-workflow design.
+  Use for repository work and technical artifacts; do not use for unrelated
+  general knowledge or non-technical prose polishing.
 ---
 
 # NeedQuality
@@ -15,6 +14,8 @@ Write the smallest code that works, can change, and a reviewer can
 defend line by line. Scope first, then shape, then strip your own
 diff. No sub-commands: Words (job), then Load (files). Matching
 rows only.
+
+Bundled flow material retains its [MIT attribution](references/flows/NOTICE).
 
 ## Persistence
 
@@ -44,14 +45,16 @@ tracked repository file. Keep the requested scope and reuse existing seams.
 
 ## Capabilities
 
-Use authorized tools exposed by the host. Run independent review or design
-lanes concurrently when workers exist; otherwise run them sequentially with
-separate findings. `implement-spec` requires independent agents and isolated
-worktrees; when either is unavailable, use `implement` and report the
-fallback. Use the available tracker, PR, browser, and research interfaces.
-Report a missing capability instead of inventing an operation. Describe
-context boundaries by intent and use host-specific controls only when the
-host exposes them.
+Use authorized tools exposed by the host. Parallel work is optional unless the
+selected flow requires isolation; use it only when independent lanes benefit
+the task. Sequential review and design lanes keep separate findings.
+`implement-spec` requires independent agents and isolated worktrees; when
+either is unavailable, use `implement` and report the fallback. Use available
+tracker, PR, browser, and research interfaces. Report a missing capability
+instead of inventing an operation. Describe context boundaries by intent and
+use host-specific controls only when the host exposes them. NeedQuality
+controls its bundled references; compose explicitly named external skills and
+higher-priority host instructions normally.
 
 ## Trace
 

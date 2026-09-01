@@ -12,20 +12,27 @@ Uses the vocabulary in [flow](../codebase-design.md): **module**, **interface**,
 
 ### 1. Frame the problem space
 
-Before spawning sub-agents, write a user-facing explanation of the problem space for the chosen candidate:
+Before producing designs, write a user-facing explanation of the problem space
+for the chosen candidate:
 
 - The constraints any new interface would need to satisfy
 - The dependencies it would rely on, and which category they fall into (see [DEEPENING.md](DEEPENING.md))
 - A rough illustrative code sketch to ground the constraints, not a proposal, just a way to make the constraints concrete
 
-Show this to the user, then immediately proceed to Step 2. The user reads and thinks while the sub-agents work in parallel.
+Show this to the user, then immediately proceed to Step 2. Use independent
+workers when available and useful; otherwise keep each design in a separate
+sequential pass.
 
 ### 2. Produce independent designs
 
 Create 3+ **radically different** interfaces. Prefer parallel independent
 workers; use sequential passes when workers are unavailable.
 
-Prompt each sub-agent with a separate technical brief (file paths, coupling details, dependency category from [DEEPENING.md](DEEPENING.md), what sits behind the seam). The brief is independent of the user-facing problem-space explanation in Step 1. Give each agent a different design constraint:
+Give each worker or sequential design pass a separate technical brief (file
+paths, coupling details, dependency category from
+[DEEPENING.md](DEEPENING.md), and what sits behind the seam). Keep it
+independent of the user-facing explanation in Step 1. Use a different design
+constraint for each pass:
 
 - Agent 1: "Minimize the interface: aim for 1–3 entry points max. Maximise leverage per entry point."
 - Agent 2: "Maximise flexibility: support many use cases and extension."
@@ -34,7 +41,7 @@ Prompt each sub-agent with a separate technical brief (file paths, coupling deta
 
 Include both [flow](../codebase-design.md) vocabulary and CONTEXT.md vocabulary in the brief so each sub-agent names things consistently with the architecture language and the project's domain language.
 
-Each sub-agent outputs:
+Each design pass outputs:
 
 1. Interface (types, methods, params, plus invariants, ordering, error modes)
 2. Usage example showing how callers use it

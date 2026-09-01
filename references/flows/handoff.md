@@ -2,7 +2,9 @@ From mattpocock/skills (MIT). Read when the Words/Load row names this file.
 
 Write a handoff document summarising the current conversation so a fresh agent can continue the work. Save to the temporary directory of the user's OS - not the current workspace.
 
-Include a "suggested skills" section in the document, naming which bundled SKILL.md files the next agent should read.
+Include a "suggested routes" section naming `$needquality` and the root-routed
+flow or load slugs the next agent should select. Do not describe bundled
+references as independently discoverable skills.
 
 Do not duplicate content already captured in other artifacts (specs, plans, ADRs, issues, commits, diffs). Reference them by path or URL instead.
 

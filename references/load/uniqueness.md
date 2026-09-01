@@ -106,19 +106,17 @@ is actually that world, or the artifact's material is that finish.
 - Broadsheet kickers, 01/02/03, decorative grid; cream card +
   hard offset shadow on sage
 
-## Impeccable
+## Optional external detectors
 
-Do not load the impeccable *skill* unless the user asked. Sync the
-catalog: fingerprint rows track
-[impeccable.style/slop](https://impeccable.style/slop). After a
-new landing, if `~/.claude/skills/impeccable/scripts/detect.mjs`
-exists, run it on the files you wrote; fix findings that are not
-the committed world. Do not `npx` install it.
+Use an explicitly requested detector or design skill when the host exposes it.
+Discover that capability from the current tool or skill inventory rather than
+assuming a provider-specific filesystem path. Without one, use the bundled
+fingerprint and [detect](ui/detect.md) checks. Do not install a detector as a
+side effect of this flow.
 
 ## Don't
 
-Don't load frontend-design unless asked. Don't scrape a brand into
-DESIGN.md. Don't fork 2–3 directions as ceremony. Don't skip
+Don't scrape a brand into DESIGN.md. Don't fork 2–3 directions as ceremony. Don't skip
 fetches because the defaults "should be enough." Don't treat a
 centroid as never-allowed. Don't flatten a saturated fetch into
 paper.

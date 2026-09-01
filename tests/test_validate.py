@@ -17,8 +17,21 @@ class ValidationTests(unittest.TestCase):
         errors: list[str] = []
         validate.validate_docs(errors)
         jobs, flows = validate.validate_routes(errors)
+        validate.validate_portability(errors)
         self.assertEqual((jobs, flows), (17, 35))
         self.assertEqual(errors, [])
+
+    def test_portability_rejects_provider_commands_and_child_skill_language(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "needquality"
+            references = root / "references"
+            references.mkdir(parents=True)
+            (root / "SKILL.md").write_text("Use /clear and a bundled SKILL.md.\n", encoding="utf-8")
+            (references / "one.md").write_text("Use ~/.claude/skills/tool.\n", encoding="utf-8")
+            errors: list[str] = []
+            with patch.object(validate, "ROOT", root):
+                validate.validate_portability(errors)
+            self.assertEqual(len(errors), 3)
 
     def test_frontmatter_rejects_duplicate_keys(self) -> None:
         _, errors = validate.frontmatter("---\nname: one\nname: two\ndescription: test\n---\n")
@@ -43,6 +56,100 @@ class ValidationTests(unittest.TestCase):
                 validate.validate_docs(errors)
             self.assertTrue(any("expected only root SKILL.md" in error for error in errors))
             self.assertTrue(any("unreachable" in error for error in errors))
+
+    def test_unreachable_non_markdown_companion_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "renamed-checkout"
+            references = root / "references"
+            references.mkdir(parents=True)
+            (root / "SKILL.md").write_text(
+                "---\nname: needquality\ndescription: test\n---\n\n[used](references/used.md)\n",
+                encoding="utf-8",
+            )
+            (references / "used.md").write_text("# Used\n", encoding="utf-8")
+            (references / "orphan.sh").write_text("#!/bin/sh\n", encoding="utf-8")
+            errors: list[str] = []
+            with patch.object(validate, "ROOT", root):
+                validate.validate_docs(errors)
+            self.assertTrue(any("orphan.sh" in error and "unreachable" in error for error in errors))
+            self.assertFalse(any("name must be" in error for error in errors))
+
+    def test_code_examples_do_not_create_links_but_invalid_prose_links_fail(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "needquality"
+            references = root / "references"
+            references.mkdir(parents=True)
+            (root / "SKILL.md").write_text(
+                """---
+name: needquality
+description: test
+---
+
+[used](references/used.md)
+
+```markdown
+[example](/not-a-real-file)
+```
+
+`[inline](./src/example.md)`
+""",
+                encoding="utf-8",
+            )
+            (references / "used.md").write_text("[bad](/etc/passwd)\n[placeholder](link)\n", encoding="utf-8")
+            errors: list[str] = []
+            with patch.object(validate, "ROOT", root):
+                validate.validate_docs(errors)
+            self.assertTrue(any("absolute local link" in error for error in errors))
+            self.assertTrue(any("missing link: link" in error for error in errors))
+            self.assertFalse(any("not-a-real-file" in error for error in errors))
+            self.assertFalse(any("src/example.md" in error for error in errors))
+
+    def test_malformed_words_section_reports_error_without_crashing(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "needquality"
+            root.mkdir()
+            (root / "SKILL.md").write_text(
+                "---\nname: needquality\ndescription: test\n---\n\n# Missing tables\n",
+                encoding="utf-8",
+            )
+            (root / "references").mkdir()
+            errors: list[str] = []
+            with patch.object(validate, "ROOT", root):
+                jobs, flows = validate.validate_routes(errors)
+            self.assertEqual((jobs, flows), (0, 0))
+            self.assertTrue(any("Words" in error for error in errors))
+
+    def test_malformed_words_and_load_rows_are_reported(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "needquality"
+            root.mkdir()
+            (root / "SKILL.md").write_text(
+                """---
+name: needquality
+description: test
+---
+
+## Words
+
+| They say | Do | Read |
+|---|---|---|
+| broken | only two cells |
+
+## Load
+
+| Touching | Read before editing |
+|---|---|
+| `.py` |
+""",
+                encoding="utf-8",
+            )
+            (root / "references" / "jobs").mkdir(parents=True)
+            (root / "references" / "flows").mkdir()
+            errors: list[str] = []
+            with patch.object(validate, "ROOT", root):
+                validate.validate_routes(errors)
+            self.assertTrue(any("malformed Words row" in error for error in errors))
+            self.assertTrue(any("malformed Load row" in error for error in errors))
 
 
 if __name__ == "__main__":

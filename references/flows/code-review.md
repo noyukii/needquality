@@ -5,7 +5,7 @@ Two-axis review of the diff between `HEAD` and a fixed point the user supplies:
 - **Standards**: does the code conform to this repo's documented coding standards?
 - **Spec**: does the code faithfully implement the originating issue / spec?
 
-Run both axes in independent workers when the host supports them. Otherwise run
+Independent workers are optional when they improve the review. Otherwise run
 the axes sequentially and keep their notes separate before aggregation. Never
 claim parallel execution when it did not occur.
 
@@ -19,7 +19,7 @@ Whatever the user said is the fixed point (a commit SHA, branch name, tag, `main
 
 Capture the diff command once: `git diff <fixed-point>...HEAD` (three-dot, so the comparison is against the merge-base). Also note the list of commits via `git log <fixed-point>..HEAD --oneline`.
 
-Before going further, confirm the fixed point resolves (`git rev-parse <fixed-point>`) and the diff is non-empty. A bad ref or empty diff should fail here, not inside two parallel sub-agents.
+Before going further, confirm the fixed point resolves (`git rev-parse <fixed-point>`) and the diff is non-empty. A bad ref or empty diff should fail here, not inside the review lanes.
 
 ### 2. Identify the spec source
 
@@ -56,8 +56,9 @@ Each smell reads *what it is* → *how to fix*; match it against the diff:
 
 ### 4. Run both review axes
 
-Use parallel independent workers when available. Without them, run Standards
-then Spec in the current session and preserve the two outputs separately.
+Use independent workers only when they are available and useful. Otherwise run
+Standards then Spec in the current session and preserve the two outputs
+separately.
 
 **Standards sub-agent prompt** should include:
 
