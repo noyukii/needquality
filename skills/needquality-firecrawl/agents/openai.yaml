@@ -1,0 +1,6 @@
+interface:
+  display_name: "NeedQuality Firecrawl"
+  short_description: "One-off Firecrawl workflows and integration"
+  default_prompt: "Use $needquality-firecrawl for this task."
+policy:
+  allow_implicit_invocation: true

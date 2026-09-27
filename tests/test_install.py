@@ -41,7 +41,10 @@ class InstallerTests(unittest.TestCase):
     def test_skill_sources_cover_every_bundled_skill(self) -> None:
         sources = install.skill_sources()
         self.assertIn(SKILL, sources)
-        self.assertTrue(all(name.startswith(install.SKILL_PREFIX) for name in sources))
+        self.assertIn(LEGACY, sources)
+        self.assertTrue(
+            all(name == LEGACY or name.startswith(install.SKILL_PREFIX) for name in sources)
+        )
         for files in sources.values():
             self.assertIn("SKILL.md", files)
         self.assertIn("references/fix.md", sources[SKILL])
@@ -194,9 +197,11 @@ class InstallerTests(unittest.TestCase):
             root = Path(temp) / "checkout"
             skill = write_skill(root, "needquality-demo", references=False)
             (skill / "references").symlink_to(Path(temp), target_is_directory=True)
-            with patch.object(install, "ROOT", root):
-                with self.assertRaisesRegex(ValueError, "symlink"):
-                    install.skill_sources()
+            with (
+                patch.object(install, "ROOT", root),
+                self.assertRaisesRegex(ValueError, "symlink"),
+            ):
+                install.skill_sources()
 
     def test_checkout_directory_name_does_not_change_install_names(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -212,15 +217,19 @@ class InstallerTests(unittest.TestCase):
             (skill / "SKILL.md").write_text(
                 "---\nname: needquality-other\ndescription: test\n---\n", encoding="utf-8"
             )
-            with patch.object(install, "ROOT", root):
-                with self.assertRaisesRegex(ValueError, "match its directory"):
-                    install.skill_sources()
+            with (
+                patch.object(install, "ROOT", root),
+                self.assertRaisesRegex(ValueError, "match its directory"),
+            ):
+                install.skill_sources()
             (skill / "SKILL.md").write_text(
                 "---\nname: demo\ndescription: test\n---\n", encoding="utf-8"
             )
-            with patch.object(install, "ROOT", root):
-                with self.assertRaisesRegex(ValueError, "must start with"):
-                    install.skill_sources()
+            with (
+                patch.object(install, "ROOT", root),
+                self.assertRaisesRegex(ValueError, "must start with"),
+            ):
+                install.skill_sources()
 
     def test_sync_preflights_every_source_before_creating_destination(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -294,16 +303,18 @@ class InstallerTests(unittest.TestCase):
             source = root / "source.txt"
             source.write_text("content\n", encoding="utf-8")
             destination = root / "skills" / SKILL
-            with patch.object(install, "atomic_manifest", side_effect=OSError("manifest failed")):
-                with self.assertRaisesRegex(OSError, "manifest failed"):
-                    install.sync(
-                        destination,
-                        SKILL,
-                        {"file.txt": source},
-                        {},
-                        install.Drift(missing=["file.txt"]),
-                        False,
-                    )
+            with (
+                patch.object(install, "atomic_manifest", side_effect=OSError("manifest failed")),
+                self.assertRaisesRegex(OSError, "manifest failed"),
+            ):
+                install.sync(
+                    destination,
+                    SKILL,
+                    {"file.txt": source},
+                    {},
+                    install.Drift(missing=["file.txt"]),
+                    False,
+                )
             self.assertFalse(destination.exists())
             self.assertFalse(destination.parent.exists())
 
@@ -430,16 +441,16 @@ class InstallerTests(unittest.TestCase):
             with (
                 patch.object(install, "atomic_copy", side_effect=fail_rollback),
                 patch.object(install, "atomic_manifest", side_effect=OSError("commit failed")),
+                self.assertRaisesRegex(OSError, "rollback failed"),
             ):
-                with self.assertRaisesRegex(OSError, "rollback failed"):
-                    install.sync(
-                        destination,
-                        SKILL,
-                        {"file.txt": source},
-                        {"file.txt": old_hash},
-                        install.Drift(changed=["file.txt"]),
-                        False,
-                    )
+                install.sync(
+                    destination,
+                    SKILL,
+                    {"file.txt": source},
+                    {"file.txt": old_hash},
+                    install.Drift(changed=["file.txt"]),
+                    False,
+                )
             self.assertTrue(any(destination.glob(".transaction.*")))
 
     def test_transaction_rolls_back_when_a_copy_fails(self) -> None:
@@ -469,9 +480,11 @@ class InstallerTests(unittest.TestCase):
                     raise OSError("injected")
                 real_copy(source, output)
 
-            with patch.object(install, "atomic_copy", side_effect=fail_second_copy):
-                with self.assertRaisesRegex(OSError, "injected"):
-                    install.sync(destination, SKILL, sources, previous, drift, False)
+            with (
+                patch.object(install, "atomic_copy", side_effect=fail_second_copy),
+                self.assertRaisesRegex(OSError, "injected"),
+            ):
+                install.sync(destination, SKILL, sources, previous, drift, False)
             self.assertEqual(
                 [target.read_text(encoding="utf-8") for target in targets],
                 ["managed old 1\n", "managed old 2\n"],
@@ -511,10 +524,14 @@ class InstallerTests(unittest.TestCase):
             alias.symlink_to(first, target_is_directory=True)
             args = argparse.Namespace(root=[str(alias), str(first)], all=False, platform=None)
             destinations = install.selected_destinations(args, [SKILL, "needquality-test"])
-            self.assertEqual(destinations, [(SKILL, first / SKILL), ("needquality-test", first / "needquality-test")])
+            canonical_first = first.resolve()
+            self.assertEqual(
+                destinations,
+                [(SKILL, canonical_first / SKILL), ("needquality-test", canonical_first / "needquality-test")],
+            )
             alias.unlink()
             alias.symlink_to(second, target_is_directory=True)
-            self.assertEqual(destinations[0], (SKILL, first / SKILL))
+            self.assertEqual(destinations[0], (SKILL, canonical_first / SKILL))
 
     def test_exact_destination_symlink_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -539,11 +556,27 @@ class InstallerTests(unittest.TestCase):
             self.assertTrue(install.has_needquality_install(legacy_root))
 
     def test_skill_filter_accepts_short_names_and_rejects_unknown(self) -> None:
-        available = ["needquality-fix", "needquality-test"]
-        args = argparse.Namespace(skill=["fix", "needquality-test", "fix"])
+        available = [LEGACY, "needquality-fix", "needquality-test"]
+        args = argparse.Namespace(skill=["needquality", "fix", "needquality-test", "fix"])
         self.assertEqual(install.selected_skill_names(args, available), available)
         with self.assertRaisesRegex(ValueError, "unknown skill"):
             install.selected_skill_names(argparse.Namespace(skill=["nope"]), available)
+
+    def test_cli_installs_router_by_exact_skill_name(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "skills"
+            command = [
+                sys.executable,
+                str(SCRIPTS / "install.py"),
+                "--root",
+                str(root),
+                "--skill",
+                LEGACY,
+            ]
+            result = subprocess.run(command, capture_output=True, text=True, check=False)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue((root / LEGACY / "SKILL.md").is_file())
+            self.assertFalse((root / "needquality-implement").exists())
 
     def test_cli_check_exit_codes_and_writes_nothing(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -559,7 +592,7 @@ class InstallerTests(unittest.TestCase):
             clean = subprocess.run([*command, "--check"], capture_output=True, text=True, check=False)
             self.assertEqual(clean.returncode, 0, clean.stderr)
 
-    def test_cli_installs_every_skill_and_retires_legacy(self) -> None:
+    def test_cli_migrates_legacy_install_to_router(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp) / "skills"
             legacy = root / LEGACY
@@ -572,7 +605,13 @@ class InstallerTests(unittest.TestCase):
             command = [sys.executable, str(SCRIPTS / "install.py"), "--root", str(root)]
             installed = subprocess.run(command, capture_output=True, text=True, check=False)
             self.assertEqual(installed.returncode, 0, installed.stderr)
-            self.assertFalse(legacy.exists())
+            self.assertTrue((legacy / "SKILL.md").is_file())
+            self.assertIn("name: needquality", (legacy / "SKILL.md").read_text(encoding="utf-8"))
+            selective = subprocess.run(
+                [*command, "--skill", "fix"], capture_output=True, text=True, check=False
+            )
+            self.assertEqual(selective.returncode, 0, selective.stderr)
+            self.assertTrue((legacy / "SKILL.md").is_file())
             names = sorted(entry.name for entry in root.iterdir())
             self.assertEqual(names, sorted(install.skill_sources()))
 

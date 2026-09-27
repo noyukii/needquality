@@ -6,13 +6,13 @@
 
 ## What it is
 
-NeedQuality is a set of independently triggered agent skills for software
-delivery. Each skill owns one kind of work (implementing, fixing, reviewing,
-testing, shipping), one domain (a language, SQL, trust boundaries, web UI),
-or one process (planning, architecture, docs, research, ops). A host loads a
-skill only when the request matches that skill's description, so a coding
-turn pays for the one or two skills it needs instead of a router that fires on
-everything.
+NeedQuality is a set of agent skills for software delivery. The lightweight
+`needquality` skill routes ambiguous or cross-cutting requests to one primary
+workflow and only the necessary companions; specialists own execution. Hosts
+can also load a specialist directly when its trigger clearly matches. Each
+skill owns one kind of work (implementing, fixing, reviewing, testing,
+shipping), one domain (a language, SQL, trust boundaries, web UI), or one
+process (planning, architecture, docs, research, ops).
 
 Every skill starts with the same short contract: scope the change, read the
 target and its neighbours, patch the smallest slice, prove it with a fresh
@@ -25,6 +25,8 @@ directories, so each one installs and works on its own.
 
 | Skill | What it does | Loads when |
 |---|---|---|
+| `needquality` | Lightweight router with scope, evidence, authority, and ownership guardrails | ambiguous or cross-cutting software work; NeedQuality routing |
+| `needquality-reasoning` | Problem framing, uncertainty, trade-off analysis, execution checks | contested assumptions, ambiguous goals, meaningful alternatives |
 | `needquality-implement` | Smallest defensible code change: ladder of what to build, patch rules, fresh proof, compact close; one dependency bump per slice | implement, add, build, create, update, change code, upgrade deps |
 | `needquality-fix` | Reproduce, root-cause patch, re-run the red command; hard-bug diagnosis loop; first failing CI check; merge conflicts by intent | fix, bug, broken, diagnose, CI is red, merge conflict |
 | `needquality-review` | Evidence-backed review with docs, guidelines, and a command; two-axis Standards/Spec review; live browser verification | review, look over, review since, verify in the browser |
@@ -55,11 +57,12 @@ directories, so each one installs and works on its own.
 | `needquality-architecture` | Deep-module vocabulary, architecture scan with HTML report, dependency-cruiser entry-point rules | architecture, deepen, seams, dependency-cruiser |
 | `needquality-docs` | The one requested document in its file's voice; writing for agents (skills, AGENTS.md, pointers) | document, README, AGENTS.md, write a skill |
 | `needquality-research` | Bounded research: L0-L3 depth, required slots, cited primary sources, explicit stop | research this, primary sources, unfamiliar API |
+| `needquality-firecrawl` | Firecrawl one-off web workflows and API/SDK integration | explicit Firecrawl, Firecrawl-backed workflow, Firecrawl app integration |
 | `needquality-ops` | One signal in the installed observability stack, bash wizards for manual provisioning, handoff notes | instrument, add metrics, wizard, handoff |
 
-Descriptions for all thirty-one skills total about 2,800 tokens of
-always-loaded metadata (`python3 scripts/validate.py --stats` prints the
-current number; the validator caps it at 3,200).
+Descriptions for all skills stay within the 3,200-token always-loaded
+metadata budget (`python3 scripts/validate.py --stats` prints the current
+count and budget).
 
 ## Install and update
 
@@ -85,9 +88,9 @@ python3 scripts/install.py --force                      # replace modified manag
 Each installed skill carries a hash manifest. Updates remove only unchanged
 files previously managed by NeedQuality and preserve local modifications as
 conflicts. Writes are staged and rolled back per destination if one fails. An
-older single-directory `needquality/` install is retired automatically on the
-next run when its files are unmodified; modified files stay behind as
-conflicts.
+older single-directory `needquality/` monolith is migrated in place to the
+router on update. Unmodified managed files are replaced or removed; locally
+modified files remain conflicts for manual resolution.
 
 Codex uses `$CODEX_HOME/skills`, falling back to `~/.codex/skills`. The other
 standard roots are `~/.agents/skills`, `~/.claude/skills`, and

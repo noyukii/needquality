@@ -93,9 +93,11 @@ Do not run `firecrawl --status`, version, auth, install, or other probe before
 consent; a probe is a Firecrawl call for this policy. After consent, check
 status at most once if it is needed.
 
-When the user explicitly names an external research skill, compose it with this
-flow. User and host authorization still decide whether a provider call is
-permitted; loading a skill by itself does not grant consent for external I/O.
+When the user explicitly requests Firecrawl, compose this flow with
+`needquality-firecrawl` for provider-specific operations. User and host
+authorization still decide whether a provider call is permitted; loading a
+skill by itself does not grant consent for external I/O. Other explicitly
+named external research skills may also be composed with this flow.
 
 Before each wave:
 

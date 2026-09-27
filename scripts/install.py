@@ -11,6 +11,7 @@ import re
 import shutil
 import sys
 import tempfile
+from contextlib import suppress
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -257,6 +258,13 @@ def prune_empty(parent: Path, destination: Path) -> None:
         parent = parent.parent
 
 
+def remove_transaction(path: Path) -> None:
+    try:
+        shutil.rmtree(path)
+    except OSError as error:
+        raise ValueError(f"cannot remove transaction {path}: {error}") from error
+
+
 def recover_transactions(destination: Path, *, dry_run: bool = False) -> None:
     if not destination.exists():
         return
@@ -284,7 +292,7 @@ def recover_transactions(destination: Path, *, dry_run: bool = False) -> None:
             raise ValueError(f"invalid abandoned transaction journal: {journal_path}")
         state = journal.get("state", "ready")
         if state == "preparing":
-            shutil.rmtree(transaction)
+            remove_transaction(transaction)
             continue
         replacements = journal.get("replacements")
         removals = journal.get("removals")
@@ -333,7 +341,7 @@ def recover_transactions(destination: Path, *, dry_run: bool = False) -> None:
             atomic_copy(manifest_backup, manifest)
         elif manifest.is_file() or manifest.is_symlink():
             manifest.unlink()
-        shutil.rmtree(transaction)
+        remove_transaction(transaction)
 
 
 def sync(
@@ -458,10 +466,8 @@ def sync(
         if transaction and transaction.exists() and not mutation_started:
             shutil.rmtree(transaction)
         for path in created:
-            try:
+            with suppress(OSError):
                 path.rmdir()
-            except OSError:
-                pass
         raise
     return []
 
@@ -520,7 +526,11 @@ def selected_skill_names(args: argparse.Namespace, available: list[str]) -> list
         return available
     names: list[str] = []
     for value in args.skill:
-        name = value if value.startswith(SKILL_PREFIX) else SKILL_PREFIX + value
+        name = (
+            value
+            if value == LEGACY_SKILL_NAME or value.startswith(SKILL_PREFIX)
+            else SKILL_PREFIX + value
+        )
         if name not in available:
             raise ValueError(f"unknown skill: {value} (available: {', '.join(available)})")
         if name not in names:
@@ -602,6 +612,8 @@ def main() -> int:
 
     exit_code = 0
     for root in roots:
+        if LEGACY_SKILL_NAME in sources:
+            continue
         try:
             exit_code = max(exit_code, retire_legacy(root, check=args.check, force=args.force))
         except (OSError, ValueError) as error:

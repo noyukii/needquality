@@ -2703,6 +2703,122 @@
           "text": "Says ordinary implement will run the ticket graph sequentially because the required isolation capabilities are unavailable."
         }
       ]
+    },
+    {
+      "id": 76,
+      "name": "firecrawl-one-off-extraction",
+      "prompt": "Use Firecrawl to extract the names and prices from the vendor catalog at https://example.test/catalog. Give the result as a table.",
+      "skills": [
+        "needquality-firecrawl"
+      ],
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "loads-firecrawl",
+          "kind": "skill_loaded",
+          "skill": "needquality-firecrawl"
+        }
+      ],
+      "rubric": [
+        {
+          "id": "routes-extraction",
+          "text": "Chooses a structured extraction path for the requested fields and returns a table or explains that provider access is unavailable; does not invent fetched data."
+        }
+      ]
+    },
+    {
+      "id": 77,
+      "name": "firecrawl-app-integration",
+      "prompt": "Add Firecrawl search to this application using its SDK. First inspect the installed SDK and tell me the minimal integration plan; do not edit files.",
+      "skills": [
+        "needquality-firecrawl"
+      ],
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "loads-firecrawl",
+          "kind": "skill_loaded",
+          "skill": "needquality-firecrawl"
+        }
+      ],
+      "rubric": [
+        {
+          "id": "integration-is-evidence-based",
+          "text": "Plans to inspect the installed SDK and project conventions, keeps credentials server-side, and avoids inventing SDK APIs."
+        }
+      ]
+    },
+    {
+      "id": 78,
+      "name": "needquality-router-cross-cutting-implementation",
+      "prompt": "I need to add a TypeScript webhook endpoint that accepts a callback URL, and I want tests. Don't edit anything yet; tell me which NeedQuality skills should guide the work and why.",
+      "skills": [
+        "needquality",
+        "needquality-implement",
+        "needquality-javascript",
+        "needquality-trust",
+        "needquality-test"
+      ],
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "loads-router",
+          "kind": "skill_loaded",
+          "skill": "needquality"
+        },
+        {
+          "id": "loads-primary",
+          "kind": "skill_loaded",
+          "skill": "needquality-implement"
+        },
+        {
+          "id": "loads-language",
+          "kind": "skill_loaded",
+          "skill": "needquality-javascript"
+        },
+        {
+          "id": "loads-trust",
+          "kind": "skill_loaded",
+          "skill": "needquality-trust"
+        },
+        {
+          "id": "loads-test",
+          "kind": "skill_loaded",
+          "skill": "needquality-test"
+        }
+      ],
+      "rubric": [
+        {
+          "id": "chooses-primary-and-companions",
+          "text": "Selects implementation as primary and names JavaScript, trust-boundary, and test guidance only as relevant companions; does not load every skill."
+        }
+      ]
+    },
+    {
+      "id": 79,
+      "name": "needquality-reasoning-uncertain-choice",
+      "prompt": "Two approaches could satisfy this feature, but one is harder to reverse and the acceptance criteria are incomplete. Help me frame the decision, identify what evidence or clarification matters, compare the options proportionately, and state a check that could disprove the chosen approach.",
+      "skills": [
+        "needquality-reasoning"
+      ],
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "loads-reasoning",
+          "kind": "skill_loaded",
+          "skill": "needquality-reasoning"
+        }
+      ],
+      "rubric": [
+        {
+          "id": "reasons-with-bounds",
+          "text": "Separates knowns from unknowns, requests clarification only if it changes the decision, compares reversibility and risk, and names a falsifiable verification check."
+        }
+      ]
     }
   ]
 }

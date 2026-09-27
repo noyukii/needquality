@@ -16,6 +16,7 @@ from urllib.parse import unquote, urlsplit
 
 from eval_schema import load_evals, validate_baseline, validate_evals
 from runtime_payload import (
+    LEGACY_SKILL_NAME,
     SKILL_PREFIX,
     SKILLS_DIR,
     discover_skills,
@@ -282,10 +283,13 @@ def validate_skill(skill_root: Path, errors: list[str]) -> SkillReport | None:
                 errors.append(f"{doc_label}: link is not a regular file: {target}")
                 continue
             fragment = unquote(urlsplit(clean_link_target(target)).fragment)
-            if fragment and resolved.suffix.lower() == ".md":
-                if fragment not in heading_anchors(resolved.read_text(encoding="utf-8")):
-                    errors.append(f"{doc_label}: missing fragment: {target}")
-                    continue
+            if (
+                fragment
+                and resolved.suffix.lower() == ".md"
+                and fragment not in heading_anchors(resolved.read_text(encoding="utf-8"))
+            ):
+                errors.append(f"{doc_label}: missing fragment: {target}")
+                continue
             if path == skill_file:
                 linked_from_root.add(resolved)
 
@@ -332,7 +336,7 @@ def validate_discovery(errors: list[str]) -> list[Path]:
             continue
         if path.resolve() not in allowed:
             errors.append(
-                f"discovery: SKILL.md outside {SKILLS_DIR}/<{SKILL_PREFIX}*>/: "
+                f"discovery: SKILL.md outside {SKILLS_DIR}/<{SKILL_PREFIX}*> or {LEGACY_SKILL_NAME}/: "
                 f"{path.relative_to(ROOT)}"
             )
     return skills

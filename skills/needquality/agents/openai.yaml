@@ -1,0 +1,6 @@
+interface:
+  display_name: "NeedQuality"
+  short_description: "Route work to quality skills"
+  default_prompt: "Use $needquality to route this task."
+policy:
+  allow_implicit_invocation: true

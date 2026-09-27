@@ -7,7 +7,7 @@ import json
 import re
 from pathlib import Path
 
-SKILL_NAME_RE = re.compile(r"^needquality-[a-z0-9]+(?:-[a-z0-9]+)*$")
+SKILL_NAME_RE = re.compile(r"^(?:needquality|needquality-[a-z0-9]+(?:-[a-z0-9]+)*)$")
 SLUG_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 CHECK_KINDS = {
     "path_exists",
@@ -40,7 +40,10 @@ SKILL_KINDS = {"skill_loaded", "skill_not_loaded"}
 
 
 def load_evals(path: Path) -> dict:
-    return json.loads(path.read_text(encoding="utf-8"))
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise ValueError(f"cannot load evaluations from {path}: {error}") from error
 
 
 def safe_relative(value: object) -> bool:

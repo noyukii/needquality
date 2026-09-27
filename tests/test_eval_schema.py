@@ -581,7 +581,7 @@ class EvalSchemaTests(unittest.TestCase):
         destinations = {relative.parts[0] for _, relative in evaluator.variant_files(root)}
         self.assertIn("needquality-implement", destinations)
         self.assertIn("needquality-fix", destinations)
-        self.assertNotIn("needquality", destinations)
+        self.assertIn("needquality", destinations)
         self.assertTrue(
             any(relative == Path("needquality-fix") / "SKILL.md" for _, relative in evaluator.variant_files(root))
         )

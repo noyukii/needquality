@@ -78,9 +78,11 @@ class ValidationTests(unittest.TestCase):
         validate.validate_research(errors)
         validate.validate_tells(errors)
         self.assertEqual(errors, [])
-        self.assertEqual(len(reports), 31)
+        self.assertEqual(len(reports), 34)
         self.assertLessEqual(tokens, validate.METADATA_TOKEN_BUDGET)
-        self.assertTrue(all(report.name.startswith("needquality-") for report in reports))
+        self.assertTrue(
+            all(report.name == "needquality" or report.name.startswith("needquality-") for report in reports)
+        )
 
     def test_frontmatter_rejects_duplicate_keys(self) -> None:
         _, errors = validate.frontmatter("---\nname: one\nname: two\ndescription: test\n---\n")

@@ -68,8 +68,10 @@ def skill_metadata(skill_root: Path) -> dict[str, str]:
     name = fields.get("name", "")
     if not SKILL_NAME_RE.fullmatch(name):
         raise ValueError(f"invalid skill name: {name!r}")
-    if not name.startswith(SKILL_PREFIX):
-        raise ValueError(f"skill name must start with {SKILL_PREFIX!r}, got {name!r}")
+    if name != LEGACY_SKILL_NAME and not name.startswith(SKILL_PREFIX):
+        raise ValueError(
+            f"skill name must start with {SKILL_PREFIX!r} or equal {LEGACY_SKILL_NAME!r}, got {name!r}"
+        )
     if name != skill_root.name:
         raise ValueError(
             f"skill name {name!r} must match its directory name {skill_root.name!r}"
