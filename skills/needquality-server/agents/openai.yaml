@@ -1,0 +1,6 @@
+interface:
+  display_name: "NeedQuality server"
+  short_description: "VPS deployment and recovery rules"
+  default_prompt: "Use $needquality-server for this task."
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,6 @@
+interface:
+  display_name: "NeedQuality linux"
+  short_description: "Linux host access and diagnostics"
+  default_prompt: "Use $needquality-linux for this task."
+policy:
+  allow_implicit_invocation: true

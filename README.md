@@ -49,7 +49,9 @@ directories, so each one installs and works on its own.
 | `needquality-dart` | Dart/Flutter rules: null safety, async and streams, widget state, pubspec | editing .dart, pubspec.yaml |
 | `needquality-zig` | Zig rules: repo Zig version, allocators and defer, error unions, comptime | editing .zig, build.zig |
 | `needquality-lua` | Lua rules: runtime version, locals, pcall, metatables, rockspecs | editing .lua/.rockspec |
-| `needquality-docker` | Container rules: pinned bases, lockfile installs, layer order, non-root, health checks, secrets outside the image | Dockerfile, compose files |
+| `needquality-linux` | Distro-aware host access, packages, permissions, SSH, firewalls, systemd, journals, storage and resource diagnostics | Linux host administration, SSH, systemd, disk or resource pressure |
+| `needquality-docker` | Container builds and Compose operations: context/project discovery, targeted updates, readiness, logs, volumes, secrets, published ports | Dockerfile, Compose, .dockerignore, container updates or diagnosis |
+| `needquality-server` | VPS release preflight, CI-to-runtime configuration, reverse proxy and external health, maintenance, database-aware backups, restore drills, rollback | application deployment, proxy, maintenance, backup, restore, release rollback |
 | `needquality-sql` | Keyed writes, transactions, identifier allowlists, N+1 and pagination, Postgres pooling, expand-contract migrations | .sql, .prisma, schema, migrate, Postgres/Supabase/Neon |
 | `needquality-trust` | Session-scoped authz, CSRF and JWT, bounded fan-out, timeouts and 2xx checks, idempotent retries, atomic reservations, uploads, webhooks, secrets | HTTP handlers, auth, money, uploads, webhooks, outbound I/O, secure, harden |
 | `needquality-ui` | Web surfaces: semantics, focus, states, tokens, layout, type, color, motion, assets, landing originality, a11y audits, i18n, UI copy | web pages, components, design systems, a11y, i18n, landing page |
@@ -115,6 +117,12 @@ by name, and the host loads it if the request matches:
   the two-axis Spec axis.
 - `needquality-plan` hands implementation to `needquality-implement` and
   research passes to `needquality-research`.
+- Linux owns the host, Docker owns containers, and server management owns the
+  application release and recovery path. Use Ubuntu/Debian VPS examples with
+  the installed systemd, Compose, and reverse proxy; preserve the existing stack.
+  `needquality-ops` keeps instrumentation, manual provisioning wizards, and
+  handoffs. Kubernetes, dedicated RHEL procedures, and cloud provisioning are
+  outside this management guidance.
 
 ## Portability
 

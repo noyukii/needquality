@@ -78,7 +78,7 @@ class ValidationTests(unittest.TestCase):
         validate.validate_research(errors)
         validate.validate_tells(errors)
         self.assertEqual(errors, [])
-        self.assertEqual(len(reports), 34)
+        self.assertEqual(len(reports), 36)
         self.assertLessEqual(tokens, validate.METADATA_TOKEN_BUDGET)
         self.assertTrue(
             all(report.name == "needquality" or report.name.startswith("needquality-") for report in reports)

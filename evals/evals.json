@@ -2819,6 +2819,338 @@
           "text": "Separates knowns from unknowns, requests clarification only if it changes the decision, compares reversibility and risk, and names a falsifiable verification check."
         }
       ]
+    },
+    {
+      "id": 80,
+      "name": "linux-ssh-preserves-access",
+      "prompt": "On an Ubuntu VPS, I want to disable password SSH and change the listening port. I only have one working SSH session and have not tried the new key. Give me the safe sequence and the checks to complete before closing that session. No live server tools are available; do not change files.",
+      "skills": [
+        "needquality-linux"
+      ],
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "loads-linux",
+          "kind": "skill_loaded",
+          "skill": "needquality-linux"
+        },
+        {
+          "id": "no-new-files",
+          "kind": "no_new_files"
+        }
+      ],
+      "rubric": [
+        {
+          "id": "preserves-access",
+          "text": "Keeps the working session and a recovery/revert path, tests the intended user/key and privilege separately before disabling working authentication, and permits the new port before changing listeners."
+        },
+        {
+          "id": "validates-configuration",
+          "text": "Inspects effective config/includes and any socket activation; runs sshd -t before applying the discovered unit action rather than restarting unchecked."
+        },
+        {
+          "id": "fresh-connection",
+          "text": "Verifies a fresh SSH connection with multiplexing disabled after the change; the existing session alone is insufficient evidence."
+        }
+      ]
+    },
+    {
+      "id": 81,
+      "name": "linux-systemd-reload-distinction",
+      "prompt": "On my Debian systemd host, I edited an nginx application config, a worker.service drop-in, and the worker startup environment. Is daemon-reload enough for all three? Explain which validation and service actions each needs. Do not execute actions or edit files.",
+      "skills": [
+        "needquality-linux"
+      ],
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "loads-linux",
+          "kind": "skill_loaded",
+          "skill": "needquality-linux"
+        },
+        {
+          "id": "no-new-files",
+          "kind": "no_new_files"
+        }
+      ],
+      "rubric": [
+        {
+          "id": "distinguishes-actions",
+          "text": "Distinguishes application-config reload from systemd daemon-reload and process restart; daemon-reload rereads unit definitions without restarting the app."
+        },
+        {
+          "id": "validates-and-proves",
+          "text": "Validates each relevant config before the supported action, handles startup environment via a new process, names restart disruption and checks effective state/application behavior afterward."
+        }
+      ]
+    },
+    {
+      "id": 82,
+      "name": "docker-ufw-exposure",
+      "prompt": "My Compose database publishes 0.0.0.0:5432:5432. UFW shows deny 5432, so can I call the database private? The reverse proxy serves only the web service. Explain the smallest change and evidence needed; do not modify files or contact a host.",
+      "skills": [
+        "needquality-docker"
+      ],
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "loads-docker",
+          "kind": "skill_loaded",
+          "skill": "needquality-docker"
+        },
+        {
+          "id": "no-new-files",
+          "kind": "no_new_files"
+        }
+      ],
+      "rubric": [
+        {
+          "id": "independent-exposure",
+          "text": "Explains that Docker-published traffic can bypass UFW; checks bindings, firewall backend and IPv4/IPv6 rather than calling the port private based on UFW."
+        },
+        {
+          "id": "reduces-and-tests",
+          "text": "Removes unnecessary host database publication or chooses an explicitly required private/loopback binding; verifies intended allowed and blocked paths externally when authorized, and does not disable Docker firewall management."
+        }
+      ]
+    },
+    {
+      "id": 83,
+      "name": "docker-dependency-readiness",
+      "prompt": "Our Compose web service uses short-form depends_on: [db]. The database container is running but web fails at first boot because db is not ready. Is start order sufficient? Describe the configuration and checks needed without editing files or running a deployment.",
+      "skills": [
+        "needquality-docker"
+      ],
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "loads-docker",
+          "kind": "skill_loaded",
+          "skill": "needquality-docker"
+        },
+        {
+          "id": "no-new-files",
+          "kind": "no_new_files"
+        }
+      ],
+      "rubric": [
+        {
+          "id": "meaningful-readiness",
+          "text": "Explains short-form depends_on does not wait for readiness; proposes a meaningful database healthcheck with service_healthy or a supported application retry policy, not a sleep/fake successful check."
+        },
+        {
+          "id": "later-outages",
+          "text": "Retains application recovery/retries for later dependency outages and tests application readiness rather than treating start order, running state or a TCP listener as complete proof."
+        }
+      ]
+    },
+    {
+      "id": 84,
+      "name": "docker-mounted-secret-compatibility",
+      "prompt": "We replaced API_TOKEN environment injection with a Compose secret mounted at /run/secrets/api_token and set API_TOKEN_FILE. The app reads only API_TOKEN; its docs mention no file support. Why is it broken and what needs verification? Do not edit files or display any secret values.",
+      "skills": [
+        "needquality-docker"
+      ],
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "loads-docker",
+          "kind": "skill_loaded",
+          "skill": "needquality-docker"
+        },
+        {
+          "id": "no-new-files",
+          "kind": "no_new_files"
+        }
+      ],
+      "rubric": [
+        {
+          "id": "checks-consumer",
+          "text": "Identifies that mounts do not populate environment variables and _FILE is an image/app convention; verifies actual file-reading support instead of assuming the renamed variable works."
+        },
+        {
+          "id": "preserves-supported-path",
+          "text": "Uses a supported injection path or an explicitly implemented file-reading change, checks runtime-user permissions, and verifies application behavior without printing secret contents."
+        }
+      ]
+    },
+    {
+      "id": 85,
+      "name": "server-migration-sensitive-rollback",
+      "prompt": "A VPS Compose release renamed a PostgreSQL column and removed the old one. The prior image still reads the old column. We have new production writes since deployment and an external route returning errors. Can we just revert the image? Give a rollback decision and verification plan only; do not alter any system or files.",
+      "skills": [
+        "needquality-server",
+        "needquality-sql"
+      ],
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "loads-server",
+          "kind": "skill_loaded",
+          "skill": "needquality-server"
+        },
+        {
+          "id": "loads-sql",
+          "kind": "skill_loaded",
+          "skill": "needquality-sql"
+        },
+        {
+          "id": "no-new-files",
+          "kind": "no_new_files"
+        }
+      ],
+      "rubric": [
+        {
+          "id": "schema-aware",
+          "text": "Recognizes image rollback alone is incompatible with the current schema, inspects migration and old/new release/config compatibility, and chooses an agreed forward fix or tested recovery rather than an improvised down migration."
+        },
+        {
+          "id": "data-and-proof",
+          "text": "Accounts for new writes, recovery point, downtime and authorization before destructive data recovery; records releases/schema state and verifies the named service via dependency readiness and external application behavior."
+        }
+      ]
+    },
+    {
+      "id": 86,
+      "name": "server-rejects-inconsistent-database-backup",
+      "prompt": "For our Ubuntu Compose PostgreSQL deployment, I tar the live database volume nightly while PostgreSQL keeps writing. The tar command succeeds. Is this a recovery-ready backup, and would pg_dump contain everything needed for a new server? Answer only; no live tools or file edits.",
+      "skills": [
+        "needquality-server"
+      ],
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "loads-server",
+          "kind": "skill_loaded",
+          "skill": "needquality-server"
+        },
+        {
+          "id": "no-new-files",
+          "kind": "no_new_files"
+        }
+      ],
+      "rubric": [
+        {
+          "id": "consistent-method",
+          "text": "Rejects a raw copy of active PostgreSQL files as consistency proof; requires a supported database backup, shutdown or a complete consistent snapshot including required WAL and filesystems."
+        },
+        {
+          "id": "dump-scope",
+          "text": "Explains pg_dump is consistent per database but excludes cluster-wide roles and tablespaces, requiring globals or their provisioning source and compatible tooling."
+        },
+        {
+          "id": "restore-proof",
+          "text": "Requires an isolated restore and application checks before claiming recovery readiness; archive existence and backup exit status are insufficient."
+        }
+      ]
+    },
+    {
+      "id": 87,
+      "name": "server-failed-restore-is-not-ready",
+      "prompt": "A restore drill into a separate test PostgreSQL instance printed missing-role and SQL errors. psql continued, and the app now starts but a key customer table is empty. The backup checksum matches. Can we mark recovery verified? Give the next steps without running tools or changing files.",
+      "skills": [
+        "needquality-server"
+      ],
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "loads-server",
+          "kind": "skill_loaded",
+          "skill": "needquality-server"
+        },
+        {
+          "id": "no-new-files",
+          "kind": "no_new_files"
+        }
+      ],
+      "rubric": [
+        {
+          "id": "fails-readiness",
+          "text": "States recovery is not verified; treats errors and missing records as a partial failed restore despite the checksum and app starting."
+        },
+        {
+          "id": "repeat-isolated-drill",
+          "text": "Keeps production untouched, checks roles/extensions/version/artifact completeness, uses failure-sensitive restore options, then repeats an isolated restore and representative schema/data/application read-write checks."
+        },
+        {
+          "id": "records-evidence",
+          "text": "Records backup identity, restored recovery point, elapsed time and failures; contains jobs and external side effects in the drill."
+        }
+      ]
+    },
+    {
+      "id": 88,
+      "name": "linux-resource-limits-before-tuning",
+      "prompt": "A systemd worker on Debian is slow and sometimes disappears. Someone suggests setting MemoryHigh=512M and MemoryMax=512M immediately. What evidence and checks should guide the change? Explain only; no files or host access.",
+      "skills": [
+        "needquality-linux"
+      ],
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "loads-linux",
+          "kind": "skill_loaded",
+          "skill": "needquality-linux"
+        },
+        {
+          "id": "no-new-files",
+          "kind": "no_new_files"
+        }
+      ],
+      "rubric": [
+        {
+          "id": "diagnoses-first",
+          "text": "Correlates resource usage, journals and kernel OOM evidence, inspects unit and parent cgroup limits and host headroom before selecting values."
+        },
+        {
+          "id": "limit-semantics",
+          "text": "Distinguishes MemoryHigh reclaim/throttling from MemoryMax OOM termination; does not assume a shell ulimit or identical arbitrary settings prove safe service limits."
+        },
+        {
+          "id": "verifies-effective-change",
+          "text": "Records prior settings, applies the appropriate unit/service procedure only within scope, and verifies effective properties and representative application behavior."
+        }
+      ]
+    },
+    {
+      "id": 89,
+      "name": "router-server-ops-ownership",
+      "prompt": "Route these tasks to NeedQuality skills without doing them: fix a shell deployment script for a Compose VPS; inspect a host SSH problem; update one Compose service; verify backup recovery; add a metric; write a human provisioning wizard. Name primary and necessary companions, keeping ownership clear. Do not edit files.",
+      "skills": [
+        "needquality"
+      ],
+      "files": [],
+      "critical": true,
+      "checks": [
+        {
+          "id": "loads-needquality",
+          "kind": "skill_loaded",
+          "skill": "needquality"
+        },
+        {
+          "id": "no-new-files",
+          "kind": "no_new_files"
+        }
+      ],
+      "rubric": [
+        {
+          "id": "preserves-job-ownership",
+          "text": "Keeps the deployment-script defect with needquality-fix primary and shell/server/Docker companions as relevant; does not replace job ownership with generic ops."
+        },
+        {
+          "id": "distinct-domains",
+          "text": "Assigns host access to linux, container operations to docker and application recovery to server while leaving metrics and manual provisioning wizards with ops; avoids loading unrelated skills."
+        }
+      ]
     }
   ]
 }

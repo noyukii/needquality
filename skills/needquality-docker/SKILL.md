@@ -1,11 +1,9 @@
 ---
 name: needquality-docker
 description: >
-  Container build and compose rules: pinned base images, lockfile-driven
-  installs, layer order and cache, non-root users, health checks, secrets
-  outside the image, and compose networking. Use when editing a Dockerfile,
-  compose.yaml, docker-compose.yml, .dockerignore, or container image
-  configuration.
+  Container build and Compose operations: images, readiness, volumes,
+  secrets, and ports. Use when editing Dockerfile, Compose, or .dockerignore
+  configuration, updating containers, or diagnosing a Docker service.
 ---
 
 # NeedQuality: Docker
@@ -22,6 +20,11 @@ Every claim names a checkable artifact from this turn: a diff, a command with it
 
 Match the repo's runtime and package manager. Secrets, network exposure,
 and outbound calls from the container follow the `needquality-trust` skill.
+
+Read [operations.md](references/operations.md) for context/project discovery,
+targeted updates, readiness, logs, persistent volumes, mounted secrets, and
+published ports. Use `needquality-server` for deployment and recovery and
+`needquality-linux` for host diagnostics.
 
 ## Build
 
@@ -61,11 +64,11 @@ check.
 ## Runtime
 
 Compose service names, ports, volumes, environment keys, and health
-checks match the existing tree. `depends_on` ordering is not readiness;
-use the repo's health condition or retry policy at the real boundary.
-Health checks must test a meaningful dependency and return failure when
-that dependency is down. Run `docker compose config` before claiming
-the file is valid, then build or start the named service when possible.
+checks match the existing tree. Health checks must test the condition they
+advertise and fail when it is unsatisfied. Validate with
+`docker compose config --quiet` before claiming the file is valid, then build
+or start the named service when authorized. The operations reference owns
+readiness and deployment checks.
 
 Do not run migrations, seed credentials, `prisma db push`, or reset a
 shared database from image boot. Run as the existing non-root user when

@@ -34,12 +34,15 @@ Choose one primary route. Add only orthogonal companions the task needs; do not 
 | Improve architecture or module boundaries | `needquality-architecture` | `needquality-implement` only after the design is agreed |
 | Write docs or agent instructions | `needquality-docs` | Domain skill when the content depends on specialized behavior |
 | Instrument or prepare operational handoff | `needquality-ops` | `needquality-trust` for secrets or outbound boundaries |
+| Administer a Linux host: packages, access, systemd, storage, resources | `needquality-linux` | `needquality-docker` when the failure belongs to a container |
+| Build or operate Docker containers and Compose projects | `needquality-docker` | `needquality-linux` for host failures; `needquality-server` for releases or recovery |
+| Deploy, maintain, back up, restore, or roll back a VPS application | `needquality-server` | `needquality-linux`, `needquality-docker`, or `needquality-sql` for the affected boundary |
 | Use Firecrawl for a one-off workflow or integration | `needquality-firecrawl` | `needquality-research` only for generic research outside Firecrawl |
 | Touch a language, framework, or platform | The matching `needquality-*` domain skill | Keep the job skill primary when the task is implementation, fixing, or review |
 | Touch auth, HTTP, persistence, money, uploads, webhooks, or outbound I/O | `needquality-trust` as a companion | Keep the job skill primary |
 | Improve reasoning across problem framing and execution | `needquality-reasoning` | Combine with the task's primary skill; use only when that deeper guidance is useful |
 
-Domain skills include JavaScript/TypeScript, Python, Go, Rust, Swift, Java, Kotlin, C#, Ruby, PHP, Elixir, C/C++, shell, Dart, Zig, Lua, Docker, SQL, and UI. Match by files and behavior, not keywords alone. If no NeedQuality skill fits, proceed with the host's normal workflow rather than forcing a route.
+Domain skills include JavaScript/TypeScript, Python, Go, Rust, Swift, Java, Kotlin, C#, Ruby, PHP, Elixir, C/C++, shell, Dart, Zig, Lua, Linux, Docker, server management, SQL, and UI. Keep implementation, fixing, and review with their job skills; add the affected domain guidance. `needquality-ops` owns signals, provisioning wizards, and handoffs. Match by files and behavior, not keywords alone. If no NeedQuality skill fits, proceed with the host's normal workflow rather than forcing a route.
 
 ## Completion
 
